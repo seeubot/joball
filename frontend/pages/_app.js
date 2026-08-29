@@ -24,8 +24,7 @@ function MyApp({ Component, pageProps }) {
       <nav className="navbar">
         <div className="nav-container">
           <Link href="/" className="logo">
-            <span className="logo-icon">FB</span>
-            <span>Fresher-Bro</span>
+            Fresher-Bro
           </Link>
 
           <div className="nav-links">
@@ -76,8 +75,7 @@ function MyApp({ Component, pageProps }) {
           <div className="footer-content">
             <div className="footer-brand">
               <Link href="/" className="logo">
-                <span className="logo-icon">FB</span>
-                <span>Fresher-Bro</span>
+                Fresher-Bro
               </Link>
               <p>A community-driven job portal for freshers.</p>
             </div>
@@ -144,27 +142,15 @@ function MyApp({ Component, pageProps }) {
         }
 
         .logo {
-          display: flex;
-          align-items: center;
-          gap: 10px;
           text-decoration: none;
           color: var(--gray-900);
-          font-weight: 700;
-          font-size: 20px;
-        }
-
-        .logo-icon {
-          width: 36px;
-          height: 36px;
+          font-weight: 800;
+          font-size: 24px;
+          letter-spacing: -0.5px;
           background: linear-gradient(135deg, #4f6ef7 0%, #764ba2 100%);
-          color: white;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 14px;
-          letter-spacing: 0.5px;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .nav-links {
@@ -191,6 +177,7 @@ function MyApp({ Component, pageProps }) {
         .nav-links a.active {
           background: var(--primary-light);
           color: var(--primary);
+          -webkit-text-fill-color: var(--primary);
         }
 
         .nav-cta {
@@ -199,6 +186,7 @@ function MyApp({ Component, pageProps }) {
           padding: 8px 20px !important;
           border-radius: 8px !important;
           font-weight: 500 !important;
+          -webkit-text-fill-color: white !important;
         }
 
         .nav-cta:hover {

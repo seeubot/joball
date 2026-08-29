@@ -12,11 +12,6 @@ export default function Home() {
     search: ''
   });
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    walkins: 0,
-    regular: 0
-  });
 
   useEffect(() => {
     fetchJobs();
@@ -34,11 +29,6 @@ export default function Home() {
 
       if (result.success) {
         setJobs(result.data);
-        setStats({
-          total: result.count,
-          walkins: result.data.filter(job => job.type === 'walkin').length,
-          regular: result.data.filter(job => job.type === 'job').length
-        });
       }
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -57,21 +47,28 @@ export default function Home() {
 
       <Alert />
 
-      {/* Stats */}
-      <div className="stats">
-        <div className="stat-card">
-          <span className="stat-value">{stats.total}</span>
-          <span className="stat-label">Active Jobs</span>
+      {/* About Section */}
+      <section className="about-section" id="about">
+        <h2>About JobAll</h2>
+        <div className="about-grid">
+          <div className="about-card">
+            <h3>What We Build</h3>
+            <p>
+              JobAll is a community-driven job portal designed exclusively for freshers. 
+              We connect fresh graduates with companies hiring in Hyderabad and Bengaluru, 
+              making job discovery simple and accessible for everyone.
+            </p>
+          </div>
+          <div className="about-card">
+            <h3>How We Help</h3>
+            <p>
+              Our platform provides real-time job openings and walk-in drive information. 
+              No registration required - anyone can post jobs and apply directly through 
+              company links. We ensure only active postings are visible through auto-expiry.
+            </p>
+          </div>
         </div>
-        <div className="stat-card">
-          <span className="stat-value orange">{stats.walkins}</span>
-          <span className="stat-label">Walk-in Drives</span>
-        </div>
-        <div className="stat-card">
-          <span className="stat-value blue">{stats.regular}</span>
-          <span className="stat-label">Regular Jobs</span>
-        </div>
-      </div>
+      </section>
 
       {/* Filters */}
       <div className="filters">
@@ -131,6 +128,28 @@ export default function Home() {
         </div>
       )}
 
+      {/* Developer Contact Section */}
+      <section className="contact-section" id="contact">
+        <div className="contact-card">
+          <h2>Contact Admin</h2>
+          <p>For any queries or support, reach out to the developer</p>
+          
+          <div className="developer-info">
+            <div className="developer-details">
+              <span className="developer-label">Developer</span>
+              <span className="developer-name">SIDDHIK REDDY</span>
+            </div>
+            
+            <div className="developer-details">
+              <span className="developer-label">Contact</span>
+              <a href="tel:+918897350151" className="developer-phone">
+                +91 88973 50151
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <style jsx>{`
         .hero {
           text-align: center;
@@ -149,31 +168,38 @@ export default function Home() {
           margin: 0 auto;
         }
 
-        .stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
+        /* About Section */
+        .about-section {
+          margin-bottom: 40px;
+        }
+        .about-section h2 {
+          text-align: center;
+          font-size: 28px;
+          font-weight: 700;
+          color: #111827;
           margin-bottom: 24px;
         }
-        .stat-card {
+        .about-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+        .about-card {
           background: white;
           border: 1px solid #e5e7eb;
           border-radius: 12px;
           padding: 24px;
-          text-align: center;
         }
-        .stat-value {
-          display: block;
-          font-size: 32px;
-          font-weight: 700;
+        .about-card h3 {
+          font-size: 18px;
+          font-weight: 600;
           color: #4f6ef7;
+          margin-bottom: 12px;
         }
-        .stat-value.orange { color: #f59e0b; }
-        .stat-value.blue { color: #3b82f6; }
-        .stat-label {
+        .about-card p {
           color: #6b7280;
           font-size: 14px;
-          margin-top: 4px;
+          line-height: 1.6;
         }
 
         .filters {
@@ -246,9 +272,68 @@ export default function Home() {
           color: #6b7280;
         }
 
+        /* Contact Section */
+        .contact-section {
+          margin-top: 48px;
+          margin-bottom: 24px;
+        }
+        .contact-card {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 32px;
+          text-align: center;
+        }
+        .contact-card h2 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 8px;
+        }
+        .contact-card > p {
+          color: #6b7280;
+          font-size: 14px;
+          margin-bottom: 24px;
+        }
+        .developer-info {
+          display: flex;
+          justify-content: center;
+          gap: 40px;
+          flex-wrap: wrap;
+        }
+        .developer-details {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .developer-label {
+          font-size: 13px;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .developer-name {
+          font-size: 16px;
+          font-weight: 600;
+          color: #111827;
+        }
+        .developer-phone {
+          font-size: 16px;
+          font-weight: 600;
+          color: #4f6ef7;
+          text-decoration: none;
+        }
+        .developer-phone:hover {
+          color: #3b55e6;
+          text-decoration: underline;
+        }
+
         @media (max-width: 768px) {
           .hero h1 { font-size: 28px; }
           .hero p { font-size: 16px; }
+          .about-grid {
+            grid-template-columns: 1fr;
+          }
           .jobs-grid {
             grid-template-columns: 1fr;
           }
@@ -258,6 +343,10 @@ export default function Home() {
           .search-input,
           .filters select {
             width: 100%;
+          }
+          .developer-info {
+            flex-direction: column;
+            gap: 16px;
           }
         }
       `}</style>

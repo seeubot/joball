@@ -1,9 +1,13 @@
 export default function Alert() {
   return (
     <div className="alert">
-      <span className="alert-icon">🚨</span>
+      <div className="alert-icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+        </svg>
+      </div>
       <div className="alert-content">
-        <strong>⚠️ IMPORTANT WARNING:</strong>
+        <h3>Important Safety Warning</h3>
         <p>
           Do not give or take any money to anyone for job applications or interviews. 
           We are not responsible for any money transfer activities. 
@@ -12,42 +16,31 @@ export default function Alert() {
       </div>
       <style jsx>{`
         .alert {
-          background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-          border: 2px solid #ffc107;
-          border-radius: 12px;
-          padding: 20px;
-          margin: 20px 0;
+          background: #fffbeb;
+          border: 1px solid #fbbf24;
+          border-left: 4px solid #f59e0b;
+          border-radius: 8px;
+          padding: 16px;
           display: flex;
-          align-items: center;
-          gap: 15px;
-          animation: pulse 2s infinite;
-          box-shadow: 0 4px 6px rgba(255, 193, 7, 0.2);
+          gap: 12px;
+          margin: 20px 0;
         }
         .alert-icon {
-          font-size: 32px;
-          animation: shake 0.5s infinite;
+          color: #f59e0b;
+          flex-shrink: 0;
+          margin-top: 2px;
         }
-        .alert-content strong {
-          color: #856404;
-          display: block;
-          margin-bottom: 5px;
-          font-size: 16px;
+        .alert-content h3 {
+          color: #92400e;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 4px;
         }
         .alert-content p {
-          margin: 0;
-          color: #856404;
-          font-size: 14px;
+          color: #92400e;
+          font-size: 13px;
           line-height: 1.5;
-        }
-        @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-          70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(-10deg); }
-          75% { transform: rotate(10deg); }
+          margin: 0;
         }
       `}</style>
     </div>

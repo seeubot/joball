@@ -28,10 +28,10 @@ export default function Home() {
       const queryString = new URLSearchParams(
         Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== ''))
       ).toString();
-      
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs?${queryString}`);
       const result = await response.json();
-      
+
       if (result.success) {
         setJobs(result.data);
         setStats({
@@ -49,38 +49,41 @@ export default function Home() {
 
   return (
     <div className="container">
+      {/* Hero Section */}
+      <section className="hero">
+        <h1>Find Your First Job</h1>
+        <p>Discover job openings and walk-in drives exclusively for freshers in Hyderabad and Bengaluru.</p>
+      </section>
+
       <Alert />
-      
-      <h1 className="title">🎓 Freshers Job Portal</h1>
-      <p className="subtitle">Exclusively for 2024 & 2025 Batches in Hyderabad & Bengaluru</p>
-      
+
       {/* Stats */}
       <div className="stats">
         <div className="stat-card">
-          <span className="stat-number">{stats.total}</span>
+          <span className="stat-value">{stats.total}</span>
           <span className="stat-label">Active Jobs</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">{stats.walkins}</span>
-          <span className="stat-label">Walk-ins</span>
+          <span className="stat-value orange">{stats.walkins}</span>
+          <span className="stat-label">Walk-in Drives</span>
         </div>
         <div className="stat-card">
-          <span className="stat-number">{stats.regular}</span>
+          <span className="stat-value blue">{stats.regular}</span>
           <span className="stat-label">Regular Jobs</span>
         </div>
       </div>
-      
+
       {/* Filters */}
       <div className="filters">
-        <input 
+        <input
           type="text"
-          placeholder="🔍 Search jobs, companies, skills..."
+          placeholder="Search jobs, companies, skills..."
           value={filters.search}
           onChange={(e) => setFilters({...filters, search: e.target.value})}
           className="search-input"
         />
-        
-        <select 
+
+        <select
           value={filters.city}
           onChange={(e) => setFilters({...filters, city: e.target.value})}
         >
@@ -88,17 +91,17 @@ export default function Home() {
           <option value="Hyderabad">Hyderabad</option>
           <option value="Bengaluru">Bengaluru</option>
         </select>
-        
-        <select 
+
+        <select
           value={filters.type}
           onChange={(e) => setFilters({...filters, type: e.target.value})}
         >
           <option value="">All Types</option>
-          <option value="job">💼 Job Openings</option>
-          <option value="walkin">🏃 Walk-in Drives</option>
+          <option value="job">Job Openings</option>
+          <option value="walkin">Walk-in Drives</option>
         </select>
-        
-        <select 
+
+        <select
           value={filters.batch}
           onChange={(e) => setFilters({...filters, batch: e.target.value})}
         >
@@ -108,12 +111,11 @@ export default function Home() {
           <option value="2026">2026 Batch</option>
         </select>
       </div>
-      
-      {/* Job Listings */}
+
+      {/* Jobs Grid */}
       {loading ? (
         <div className="loading">
           <div className="spinner"></div>
-          <p>Loading jobs...</p>
         </div>
       ) : (
         <div className="jobs-grid">
@@ -122,98 +124,141 @@ export default function Home() {
           ))}
           {jobs.length === 0 && (
             <div className="no-jobs">
-              <span className="no-jobs-icon">🔍</span>
-              <p>No active jobs found matching your criteria.</p>
-              <p>Check back later or post a job opening!</p>
+              <h3>No jobs found</h3>
+              <p>Try adjusting your filters or check back later.</p>
             </div>
           )}
         </div>
       )}
-      
+
       <style jsx>{`
-        .title {
+        .hero {
           text-align: center;
-          margin: 20px 0;
-          font-size: 32px;
+          padding: 48px 20px;
         }
-        .subtitle {
-          text-align: center;
-          color: #666;
-          margin-bottom: 30px;
+        .hero h1 {
+          font-size: 36px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 12px;
         }
+        .hero p {
+          font-size: 18px;
+          color: #6b7280;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
         .stats {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 30px;
+          gap: 16px;
+          margin-bottom: 24px;
         }
         .stat-card {
           background: white;
-          padding: 20px;
+          border: 1px solid #e5e7eb;
           border-radius: 12px;
+          padding: 24px;
           text-align: center;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .stat-number {
+        .stat-value {
           display: block;
           font-size: 32px;
-          font-weight: bold;
-          color: #667eea;
+          font-weight: 700;
+          color: #4f6ef7;
         }
+        .stat-value.orange { color: #f59e0b; }
+        .stat-value.blue { color: #3b82f6; }
         .stat-label {
-          color: #666;
+          color: #6b7280;
           font-size: 14px;
+          margin-top: 4px;
         }
+
         .filters {
           display: flex;
-          gap: 15px;
-          margin-bottom: 30px;
+          gap: 12px;
+          margin-bottom: 24px;
           flex-wrap: wrap;
         }
-        .filters select, .filters input {
-          padding: 10px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
+        .filters select,
+        .filters input {
+          padding: 10px 14px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
           font-size: 14px;
+          background: white;
+          color: #374151;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+        .filters select:focus,
+        .filters input:focus {
+          border-color: #4f6ef7;
+        }
+        .search-input {
+          flex: 2;
+          min-width: 200px;
+        }
+        .filters select {
           flex: 1;
           min-width: 150px;
         }
-        .search-input {
-          flex: 2 !important;
-        }
+
         .jobs-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
           gap: 20px;
         }
+
         .loading {
-          text-align: center;
-          padding: 50px;
-          color: #666;
+          display: flex;
+          justify-content: center;
+          padding: 48px;
         }
         .spinner {
-          border: 4px solid #f3f3f3;
-          border-top: 4px solid #667eea;
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e5e7eb;
+          border-top-color: #4f6ef7;
           border-radius: 50%;
-          width: 50px;
-          height: 50px;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 20px;
+          animation: spin 0.8s linear infinite;
         }
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
         }
+
         .no-jobs {
-          text-align: center;
-          padding: 50px;
-          color: #666;
           grid-column: 1 / -1;
+          text-align: center;
+          padding: 48px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
         }
-        .no-jobs-icon {
-          font-size: 48px;
-          display: block;
-          margin-bottom: 20px;
+        .no-jobs h3 {
+          font-size: 18px;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+        .no-jobs p {
+          color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+          .hero h1 { font-size: 28px; }
+          .hero p { font-size: 16px; }
+          .jobs-grid {
+            grid-template-columns: 1fr;
+          }
+          .filters {
+            flex-direction: column;
+          }
+          .search-input,
+          .filters select {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

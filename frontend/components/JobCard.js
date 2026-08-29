@@ -1,4 +1,4 @@
-export default function JobCard({ job }) {
+export default function JobCard({ job, onApply }) {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-IN', {
       day: 'numeric',
@@ -82,17 +82,15 @@ export default function JobCard({ job }) {
       </div>
 
       {job.applyLink && (
-        <a
-          href={job.applyLink}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
           className="apply-btn"
+          onClick={() => onApply && onApply(job)}
         >
           {job.type === 'walkin' ? 'Register for Drive' : 'Apply Now'}
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
-        </a>
+        </button>
       )}
 
       <style jsx>{`
@@ -236,11 +234,13 @@ export default function JobCard({ job }) {
           background: #4f6ef7;
           color: white;
           padding: 10px 20px;
+          border: none;
           border-radius: 8px;
-          text-decoration: none;
           font-size: 14px;
           font-weight: 500;
+          cursor: pointer;
           transition: background 0.2s;
+          width: 100%;
         }
         .apply-btn:hover {
           background: #3b55e6;

@@ -1,96 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Resources() {
   const [activeTab, setActiveTab] = useState('resumes');
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    category: 'resume',
+    uploadedBy: ''
+  });
 
-  const resumeTemplates = [
-    {
-      id: 1,
-      title: 'Fresher Resume Template',
-      description: 'Simple and clean template for fresh graduates with no work experience.',
-      format: 'PDF',
-      size: '245 KB',
-      downloads: 1240
-    },
-    {
-      id: 2,
-      title: 'Technical Resume Template',
-      description: 'Best for IT and software engineering freshers with skills section.',
-      format: 'DOCX',
-      size: '180 KB',
-      downloads: 980
-    },
-    {
-      id: 3,
-      title: 'Walk-in Interview Resume',
-      description: 'Quick one-page resume format ideal for walk-in drives.',
-      format: 'PDF',
-      size: '150 KB',
-      downloads: 2150
-    },
-    {
-      id: 4,
-      title: 'ATS-Friendly Resume',
-      description: 'Optimized for Applicant Tracking Systems used by MNCs.',
-      format: 'DOCX',
-      size: '210 KB',
-      downloads: 1675
-    }
-  ];
+  useEffect(() => {
+    fetchResources(activeTab);
+  }, [activeTab]);
 
-  const interviewResources = [
-    {
-      id: 1,
-      title: 'Common Interview Questions',
-      description: 'Top 50 questions asked in fresher interviews with sample answers.',
-      format: 'PDF',
-      size: '320 KB',
-      downloads: 1890
-    },
-    {
-      id: 2,
-      title: 'Technical Interview Guide',
-      description: 'Covers data structures, algorithms, and coding interview prep.',
-      format: 'PDF',
-      size: '450 KB',
-      downloads: 1430
-    },
-    {
-      id: 3,
-      title: 'HR Interview Tips',
-      description: 'How to handle HR round questions about salary, relocation, and goals.',
-      format: 'DOCX',
-      size: '160 KB',
-      downloads: 1120
-    },
-    {
-      id: 4,
-      title: 'Group Discussion Guide',
-      description: 'Preparation tips and common GD topics for freshers.',
-      format: 'PDF',
-      size: '280 KB',
-      downloads: 890
-    },
-    {
-      id: 5,
-      title: 'Aptitude Test Preparation',
-      description: 'Practice questions for quantitative, logical, and verbal aptitude.',
-      format: 'PDF',
-      size: '520 KB',
-      downloads: 2340
-    },
-    {
-      id: 6,
-      title: 'Communication Skills Guide',
-      description: 'Improve English speaking and professional communication.',
-      format: 'DOCX',
-      size: '195 KB',
-      downloads: 760
+  const fetchResources = async (category) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resources?category=${category}`);
+      const result = await response.json();
+      if (result.success) {
+        setResources(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching resources:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -109,16 +50,58 @@ export default function Resources() {
       return;
     }
 
+    if (!formData.title) {
+      setUploadError('Please enter a title for the resource.');
+      return;
+    }
+
     setUploading(true);
     setUploadError('');
     setUploadSuccess(false);
 
-    // Simulate upload (replace with actual API call)
-    setTimeout(() => {
+    const formDataToSend = new FormData();
+    formDataToSend.append('file', file);
+    formDataToSend.append('title', formData.title);
+    formDataToSend.append('description', formData.description);
+    formDataToSend.append('category', activeTab === 'resumes' ? 'resume' : 'interview');
+    formDataToSend.append('uploadedBy', formData.uploadedBy || 'Anonymous');
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resources`, {
+        method: 'POST',
+        body: formDataToSend
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setUploadSuccess(true);
+        setFormData({ title: '', description: '', category: 'resume', uploadedBy: '' });
+        e.target.value = '';
+        fetchResources(activeTab);
+      } else {
+        setUploadError(result.error || 'Failed to upload resource.');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadError('Network error. Please try again.');
+    } finally {
       setUploading(false);
-      setUploadSuccess(true);
-      e.target.value = '';
-    }, 2000);
+    }
+  };
+
+  const handleDownload = async (resourceId, fileName) => {
+    try {
+      window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/resources/${resourceId}/download`, '_blank');
+    } catch (error) {
+      console.error('Download error:', error);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
@@ -150,64 +133,55 @@ export default function Resources() {
         </button>
       </div>
 
-      {/* Resume Templates */}
-      {activeTab === 'resumes' && (
-        <div className="resources-grid">
-          {resumeTemplates.map((resource) => (
-            <div key={resource.id} className="resource-card">
-              <div className="resource-icon pdf">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/>
-                </svg>
-              </div>
-              <div className="resource-content">
-                <h3>{resource.title}</h3>
-                <p>{resource.description}</p>
-                <div className="resource-meta">
-                  <span className="meta-badge">{resource.format}</span>
-                  <span className="meta-badge">{resource.size}</span>
-                  <span className="meta-badge">{resource.downloads} downloads</span>
+      {/* Resources Grid */}
+      {activeTab !== 'upload' && (
+        loading ? (
+          <div className="loading">
+            <div className="spinner"></div>
+          </div>
+        ) : resources.length === 0 ? (
+          <div className="no-resources">
+            <h3>No resources available yet</h3>
+            <p>Be the first to share a resource!</p>
+          </div>
+        ) : (
+          <div className="resources-grid">
+            {resources.map((resource) => (
+              <div key={resource._id} className="resource-card">
+                <div className={`resource-icon ${resource.fileType}`}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                    {resource.fileType === 'pdf' ? (
+                      <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5zM9 9.5h1v-1H9v1zM4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm10 5.5h1v-3h-1v3z"/>
+                    ) : (
+                      <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                    )}
+                  </svg>
                 </div>
-              </div>
-              <button className="download-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                </svg>
-                Download
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Interview Resources */}
-      {activeTab === 'interview' && (
-        <div className="resources-grid">
-          {interviewResources.map((resource) => (
-            <div key={resource.id} className="resource-card">
-              <div className="resource-icon doc">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-                </svg>
-              </div>
-              <div className="resource-content">
-                <h3>{resource.title}</h3>
-                <p>{resource.description}</p>
-                <div className="resource-meta">
-                  <span className="meta-badge">{resource.format}</span>
-                  <span className="meta-badge">{resource.size}</span>
-                  <span className="meta-badge">{resource.downloads} downloads</span>
+                <div className="resource-content">
+                  <h3>{resource.title}</h3>
+                  <p>{resource.description}</p>
+                  <div className="resource-meta">
+                    <span className="meta-badge">{resource.fileType.toUpperCase()}</span>
+                    <span className="meta-badge">{formatFileSize(resource.fileSize)}</span>
+                    <span className="meta-badge">{resource.downloads} downloads</span>
+                  </div>
+                  <div className="uploaded-by">
+                    Uploaded by: {resource.uploadedBy}
+                  </div>
                 </div>
+                <button 
+                  className="download-btn"
+                  onClick={() => handleDownload(resource._id, resource.fileName)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                  </svg>
+                  Download
+                </button>
               </div>
-              <button className="download-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-                </svg>
-                Download
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
 
       {/* Upload Resource */}
@@ -217,56 +191,99 @@ export default function Resources() {
             <h2>Share a Resource</h2>
             <p>Upload resume templates or interview preparation materials to help fellow freshers.</p>
             
-            <div className="upload-area">
-              <label className="upload-label" htmlFor="file-upload">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                </svg>
-                <span className="upload-text">Choose a file to upload</span>
-                <span className="upload-hint">PDF or DOCX, max 2MB</span>
-              </label>
-              <input
-                id="file-upload"
-                type="file"
-                accept=".pdf,.doc,.docx"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-              />
-            </div>
-
-            {uploading && (
-              <div className="upload-status">
-                <div className="spinner"></div>
-                <span>Uploading...</span>
+            <div className="upload-form">
+              <div className="form-group">
+                <label>Resource Type *</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option value="resume">Resume Template</option>
+                  <option value="interview">Interview Preparation</option>
+                </select>
               </div>
-            )}
 
-            {uploadSuccess && (
-              <div className="upload-success">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-                <span>Resource uploaded successfully! It will be available after review.</span>
+              <div className="form-group">
+                <label>Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Fresher Resume Template"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
-            )}
 
-            {uploadError && (
-              <div className="upload-error">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
-                </svg>
-                <span>{uploadError}</span>
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  rows="3"
+                  placeholder="Brief description of the resource"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
               </div>
-            )}
 
-            <div className="upload-requirements">
-              <h3>Requirements:</h3>
-              <ul>
-                <li>Supported formats: PDF, DOCX</li>
-                <li>Maximum file size: 2MB</li>
-                <li>Content should be relevant to freshers</li>
-                <li>No copyrighted material</li>
-              </ul>
+              <div className="form-group">
+                <label>Your Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Siddhik Reddy"
+                  value={formData.uploadedBy}
+                  onChange={(e) => setFormData({ ...formData, uploadedBy: e.target.value })}
+                />
+              </div>
+
+              <div className="upload-area">
+                <label className="upload-label" htmlFor="file-upload">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                  </svg>
+                  <span className="upload-text">Choose a file to upload</span>
+                  <span className="upload-hint">PDF or DOCX, max 2MB</span>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleFileUpload}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              {uploading && (
+                <div className="upload-status">
+                  <div className="spinner"></div>
+                  <span>Uploading...</span>
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <div className="upload-success">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                  <span>Resource uploaded successfully!</span>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="upload-error">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                  </svg>
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              <div className="upload-requirements">
+                <h3>Requirements:</h3>
+                <ul>
+                  <li>Supported formats: PDF, DOCX</li>
+                  <li>Maximum file size: 2MB</li>
+                  <li>Content should be relevant to freshers</li>
+                  <li>No copyrighted material</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -356,7 +373,8 @@ export default function Resources() {
           background: #fef2f2;
           color: #ef4444;
         }
-        .resource-icon.doc {
+        .resource-icon.doc,
+        .resource-icon.docx {
           background: #eef2ff;
           color: #4f6ef7;
         }
@@ -381,7 +399,7 @@ export default function Resources() {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
-          margin-bottom: 16px;
+          margin-bottom: 8px;
         }
         .meta-badge {
           background: #f3f4f6;
@@ -390,6 +408,12 @@ export default function Resources() {
           border-radius: 4px;
           font-size: 12px;
           font-weight: 500;
+        }
+
+        .uploaded-by {
+          font-size: 12px;
+          color: #9ca3af;
+          margin-bottom: 16px;
         }
 
         .download-btn {
@@ -409,6 +433,39 @@ export default function Resources() {
         }
         .download-btn:hover {
           background: #3b55e6;
+        }
+
+        .loading {
+          display: flex;
+          justify-content: center;
+          padding: 48px;
+        }
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e5e7eb;
+          border-top-color: #4f6ef7;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .no-resources {
+          text-align: center;
+          padding: 48px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+        }
+        .no-resources h3 {
+          font-size: 18px;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+        .no-resources p {
+          color: #6b7280;
         }
 
         .upload-section {
@@ -431,6 +488,39 @@ export default function Resources() {
           color: #6b7280;
           font-size: 14px;
           margin-bottom: 24px;
+        }
+
+        .upload-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .form-group label {
+          font-size: 14px;
+          font-weight: 500;
+          color: #374151;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+          padding: 10px 14px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          color: #374151;
+          outline: none;
+          transition: border-color 0.2s;
+          font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+          border-color: #4f6ef7;
         }
 
         .upload-area {
@@ -467,38 +557,22 @@ export default function Resources() {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-top: 16px;
           color: #6b7280;
         }
-        .spinner {
-          width: 20px;
-          height: 20px;
-          border: 2px solid #e5e7eb;
-          border-top-color: #4f6ef7;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
         .upload-success {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-top: 16px;
           padding: 12px;
           background: #ecfdf5;
           color: #047857;
           border-radius: 8px;
           font-size: 14px;
         }
-
         .upload-error {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-top: 16px;
           padding: 12px;
           background: #fef2f2;
           color: #dc2626;

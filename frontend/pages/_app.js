@@ -8,6 +8,7 @@ function MyApp({ Component, pageProps }) {
 
   const navigation = [
     { name: 'Browse Jobs', href: '/' },
+    { name: 'Resources', href: '/resources' },
     { name: 'About', href: '/about' },
     { name: 'Contact', href: '/contact' },
     { name: 'Post Job', href: '/post-job' },
@@ -82,6 +83,7 @@ function MyApp({ Component, pageProps }) {
             </div>
             <div className="footer-links">
               <Link href="/">Browse Jobs</Link>
+              <Link href="/resources">Resources</Link>
               <Link href="/about">About</Link>
               <Link href="/contact">Contact</Link>
               <Link href="/post-job">Post Job</Link>
@@ -113,9 +115,6 @@ function MyApp({ Component, pageProps }) {
           --gray-600: #4b5563;
           --gray-700: #374151;
           --gray-900: #111827;
-          --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-          --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-          --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         body {

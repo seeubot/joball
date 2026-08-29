@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import JobCard from '../components/JobCard';
-import Alert from '../components/Alert';
 
 export default function Home() {
   const [jobs, setJobs] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [filters, setFilters] = useState({
     city: '',
@@ -25,6 +25,14 @@ export default function Home() {
     const count = Object.values(filters).filter(v => v !== '').length;
     setActiveFilterCount(count);
   }, [filters]);
+
+  useEffect(() => {
+    // Check localStorage for don't show again preference
+    const dontShow = localStorage.getItem('dontShowWarning');
+    if (dontShow === 'true') {
+      setDontShowAgain(true);
+    }
+  }, []);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -59,7 +67,15 @@ export default function Home() {
 
   const handleApplyClick = (job) => {
     setSelectedJob(job);
-    setShowWarning(true);
+    
+    // If user chose don't show again, apply directly
+    if (dontShowAgain) {
+      if (job.applyLink) {
+        window.open(job.applyLink, '_blank');
+      }
+    } else {
+      setShowWarning(true);
+    }
   };
 
   const handleProceedToApply = () => {
@@ -75,9 +91,14 @@ export default function Home() {
     setSelectedJob(null);
   };
 
+  const handleDontShowAgain = (checked) => {
+    setDontShowAgain(checked);
+    localStorage.setItem('dontShowWarning', checked ? 'true' : 'false');
+  };
+
   return (
     <div className="container">
-      {/* Search Bar - Top */}
+      {/* Search Bar */}
       <div className="search-bar">
         <div className="search-input-wrapper">
           <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -210,7 +231,7 @@ export default function Home() {
         <span>{jobs.length} jobs found</span>
       </div>
 
-      {/* Jobs Grid - Loaded First */}
+      {/* Jobs Grid */}
       {loading ? (
         <div className="loading">
           <div className="spinner"></div>
@@ -228,15 +249,6 @@ export default function Home() {
           )}
         </div>
       )}
-
-      {/* Hero Section - Bottom */}
-      <section className="hero">
-        <h1>Find Your First Job</h1>
-        <p>Discover job openings and walk-in drives exclusively for freshers in Hyderabad and Bengaluru.</p>
-      </section>
-
-      {/* Alert - Bottom */}
-      <Alert />
 
       {/* Warning Modal */}
       {showWarning && (
@@ -265,6 +277,17 @@ export default function Home() {
                   <span className="selected-job-company">{selectedJob.company}</span>
                 </div>
               )}
+            </div>
+
+            <div className="dont-show-again">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={dontShowAgain}
+                  onChange={(e) => handleDontShowAgain(e.target.checked)}
+                />
+                <span>Don't show this again</span>
+              </label>
             </div>
 
             <div className="modal-actions">
@@ -470,14 +493,12 @@ export default function Home() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
           gap: 20px;
-          margin-bottom: 48px;
         }
 
         .loading {
           display: flex;
           justify-content: center;
           padding: 48px;
-          margin-bottom: 48px;
         }
         .spinner {
           width: 40px;
@@ -498,7 +519,6 @@ export default function Home() {
           background: white;
           border: 1px solid #e5e7eb;
           border-radius: 12px;
-          margin-bottom: 48px;
         }
         .no-jobs h3 {
           font-size: 18px;
@@ -507,27 +527,6 @@ export default function Home() {
         }
         .no-jobs p {
           color: #6b7280;
-        }
-
-        .hero {
-          text-align: center;
-          padding: 48px 20px;
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          margin-bottom: 24px;
-        }
-        .hero h1 {
-          font-size: 32px;
-          font-weight: 700;
-          color: #111827;
-          margin-bottom: 12px;
-        }
-        .hero p {
-          font-size: 16px;
-          color: #6b7280;
-          max-width: 600px;
-          margin: 0 auto;
         }
 
         /* Modal Styles */
@@ -593,7 +592,7 @@ export default function Home() {
         }
 
         .modal-body {
-          margin-bottom: 24px;
+          margin-bottom: 16px;
         }
         .modal-body p {
           color: #6b7280;
@@ -624,6 +623,26 @@ export default function Home() {
         .selected-job-company {
           font-size: 14px;
           color: #6b7280;
+        }
+
+        .dont-show-again {
+          margin-bottom: 16px;
+        }
+        .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+        .checkbox-label input {
+          width: 18px;
+          height: 18px;
+          accent-color: #4f6ef7;
+          cursor: pointer;
+        }
+        .checkbox-label span {
+          font-size: 14px;
+          color: #374151;
         }
 
         .modal-actions {
@@ -662,8 +681,6 @@ export default function Home() {
         }
 
         @media (max-width: 768px) {
-          .hero h1 { font-size: 24px; }
-          .hero p { font-size: 14px; }
           .jobs-grid {
             grid-template-columns: 1fr;
           }

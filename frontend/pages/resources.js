@@ -37,14 +37,12 @@ export default function Resources() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!validTypes.includes(file.type)) {
       setUploadError('Only PDF and DOCX files are allowed.');
       return;
     }
 
-    // Validate file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
       setUploadError('File size must be less than 2MB.');
       return;
@@ -92,7 +90,22 @@ export default function Resources() {
 
   const handleDownload = async (resourceId, fileName) => {
     try {
-      window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/resources/${resourceId}/download`, '_blank');
+      // Use Vercel proxy URL
+      const downloadUrl = `/api/download?id=${resourceId}`;
+      
+      // Create temporary link
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Refresh resources after download to update count
+      setTimeout(() => {
+        fetchResources(activeTab);
+      }, 2000);
     } catch (error) {
       console.error('Download error:', error);
     }

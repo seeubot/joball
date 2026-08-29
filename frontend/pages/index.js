@@ -5,6 +5,8 @@ import Alert from '../components/Alert';
 export default function Home() {
   const [jobs, setJobs] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
   const [filters, setFilters] = useState({
     city: '',
     type: '',
@@ -55,17 +57,27 @@ export default function Home() {
     setShowFilters(false);
   };
 
+  const handleApplyClick = (job) => {
+    setSelectedJob(job);
+    setShowWarning(true);
+  };
+
+  const handleProceedToApply = () => {
+    if (selectedJob && selectedJob.applyLink) {
+      window.open(selectedJob.applyLink, '_blank');
+    }
+    setShowWarning(false);
+    setSelectedJob(null);
+  };
+
+  const handleCancelApply = () => {
+    setShowWarning(false);
+    setSelectedJob(null);
+  };
+
   return (
     <div className="container">
-      {/* Hero Section */}
-      <section className="hero">
-        <h1>Find Your First Job</h1>
-        <p>Discover job openings and walk-in drives exclusively for freshers in Hyderabad and Bengaluru.</p>
-      </section>
-
-      <Alert />
-
-      {/* Search Bar */}
+      {/* Search Bar - Top */}
       <div className="search-bar">
         <div className="search-input-wrapper">
           <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -198,7 +210,7 @@ export default function Home() {
         <span>{jobs.length} jobs found</span>
       </div>
 
-      {/* Jobs Grid */}
+      {/* Jobs Grid - Loaded First */}
       {loading ? (
         <div className="loading">
           <div className="spinner"></div>
@@ -206,7 +218,7 @@ export default function Home() {
       ) : (
         <div className="jobs-grid">
           {jobs.map(job => (
-            <JobCard key={job._id} job={job} />
+            <JobCard key={job._id} job={job} onApply={handleApplyClick} />
           ))}
           {jobs.length === 0 && (
             <div className="no-jobs">
@@ -217,24 +229,57 @@ export default function Home() {
         </div>
       )}
 
-      <style jsx>{`
-        .hero {
-          text-align: center;
-          padding: 48px 20px;
-        }
-        .hero h1 {
-          font-size: 36px;
-          font-weight: 700;
-          color: #111827;
-          margin-bottom: 12px;
-        }
-        .hero p {
-          font-size: 18px;
-          color: #6b7280;
-          max-width: 600px;
-          margin: 0 auto;
-        }
+      {/* Hero Section - Bottom */}
+      <section className="hero">
+        <h1>Find Your First Job</h1>
+        <p>Discover job openings and walk-in drives exclusively for freshers in Hyderabad and Bengaluru.</p>
+      </section>
 
+      {/* Alert - Bottom */}
+      <Alert />
+
+      {/* Warning Modal */}
+      {showWarning && (
+        <div className="modal-overlay" onClick={handleCancelApply}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <h2>Safety Warning</h2>
+            </div>
+
+            <div className="modal-body">
+              <p>
+                Do not give or take any money to anyone for job applications or interviews. 
+                We are not responsible for any money transfer activities. 
+                Genuine companies never ask for payment. Stay safe!
+              </p>
+              
+              {selectedJob && (
+                <div className="selected-job-info">
+                  <span className="selected-job-label">You are applying to:</span>
+                  <span className="selected-job-title">{selectedJob.jobTitle}</span>
+                  <span className="selected-job-company">{selectedJob.company}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={handleCancelApply}>
+                Cancel
+              </button>
+              <button className="proceed-btn" onClick={handleProceedToApply}>
+                I Understand, Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
         .search-bar {
           display: flex;
           gap: 12px;
@@ -425,12 +470,14 @@ export default function Home() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
           gap: 20px;
+          margin-bottom: 48px;
         }
 
         .loading {
           display: flex;
           justify-content: center;
           padding: 48px;
+          margin-bottom: 48px;
         }
         .spinner {
           width: 40px;
@@ -451,6 +498,7 @@ export default function Home() {
           background: white;
           border: 1px solid #e5e7eb;
           border-radius: 12px;
+          margin-bottom: 48px;
         }
         .no-jobs h3 {
           font-size: 18px;
@@ -461,9 +509,161 @@ export default function Home() {
           color: #6b7280;
         }
 
+        .hero {
+          text-align: center;
+          padding: 48px 20px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          margin-bottom: 24px;
+        }
+        .hero h1 {
+          font-size: 32px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 12px;
+        }
+        .hero p {
+          font-size: 16px;
+          color: #6b7280;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 20px;
+          animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          max-width: 500px;
+          width: 100%;
+          padding: 24px;
+          animation: scaleIn 0.3s ease;
+        }
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .modal-icon {
+          width: 48px;
+          height: 48px;
+          background: #fef2f2;
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .modal-header h2 {
+          font-size: 20px;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .modal-body {
+          margin-bottom: 24px;
+        }
+        .modal-body p {
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+          margin-bottom: 16px;
+        }
+
+        .selected-job-info {
+          background: #f9fafb;
+          padding: 16px;
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .selected-job-label {
+          font-size: 12px;
+          color: #9ca3af;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .selected-job-title {
+          font-size: 16px;
+          font-weight: 600;
+          color: #111827;
+        }
+        .selected-job-company {
+          font-size: 14px;
+          color: #6b7280;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 12px;
+        }
+        .cancel-btn {
+          flex: 1;
+          padding: 10px;
+          background: white;
+          color: #6b7280;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .cancel-btn:hover {
+          background: #f9fafb;
+        }
+        .proceed-btn {
+          flex: 1;
+          padding: 10px;
+          background: #4f6ef7;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .proceed-btn:hover {
+          background: #3b55e6;
+        }
+
         @media (max-width: 768px) {
-          .hero h1 { font-size: 28px; }
-          .hero p { font-size: 16px; }
+          .hero h1 { font-size: 24px; }
+          .hero p { font-size: 14px; }
           .jobs-grid {
             grid-template-columns: 1fr;
           }
@@ -475,6 +675,9 @@ export default function Home() {
           }
           .filters-grid {
             grid-template-columns: 1fr;
+          }
+          .modal-actions {
+            flex-direction: column;
           }
         }
       `}</style>

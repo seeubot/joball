@@ -8,27 +8,14 @@ function MyApp({ Component, pageProps }) {
 
   const navigation = [
     { name: 'Browse Jobs', href: '/' },
-    { name: 'About', href: '/#about' },
-    { name: 'Contact', href: '/#contact' },
+    { name: 'About', href: '/about' },
+    { name: 'Contact', href: '/contact' },
     { name: 'Post Job', href: '/post-job' },
   ];
 
   const isActive = (href) => {
-    if (href === '/') return router.pathname === '/' && !router.asPath.includes('#');
-    if (href === '/post-job') return router.pathname === '/post-job';
-    return false;
-  };
-
-  const handleNavClick = (href) => {
-    setMobileMenuOpen(false);
-    if (href.includes('#')) {
-      const [path, hash] = href.split('#');
-      if (router.pathname === path) {
-        document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
-      } else {
-        router.push(href);
-      }
-    }
+    if (href === '/') return router.pathname === '/';
+    return router.pathname.startsWith(href);
   };
 
   return (
@@ -42,27 +29,13 @@ function MyApp({ Component, pageProps }) {
 
           <div className="nav-links">
             {navigation.map((item) => (
-              item.href.includes('#') ? (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick(item.href);
-                  }}
-                  className={isActive(item.href) ? 'active' : ''}
-                >
-                  {item.name}
-                </a>
-              ) : (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={isActive(item.href) ? 'active' : ''}
-                >
-                  {item.name}
-                </Link>
-              )
+              <Link
+                key={item.name}
+                href={item.href}
+                className={isActive(item.href) ? 'active' : ''}
+              >
+                {item.name}
+              </Link>
             ))}
             <Link href="/post-job" className="nav-cta">
               Post Job
@@ -82,28 +55,14 @@ function MyApp({ Component, pageProps }) {
         {mobileMenuOpen && (
           <div className="mobile-menu">
             {navigation.map((item) => (
-              item.href.includes('#') ? (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick(item.href);
-                  }}
-                  className={isActive(item.href) ? 'active' : ''}
-                >
-                  {item.name}
-                </a>
-              ) : (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={isActive(item.href) ? 'active' : ''}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.name}
-                </Link>
-              )
+              <Link
+                key={item.name}
+                href={item.href}
+                className={isActive(item.href) ? 'active' : ''}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {item.name}
+              </Link>
             ))}
           </div>
         )}
@@ -123,8 +82,8 @@ function MyApp({ Component, pageProps }) {
             </div>
             <div className="footer-links">
               <Link href="/">Browse Jobs</Link>
-              <a href="/#about">About</a>
-              <a href="/#contact">Contact</a>
+              <Link href="/about">About</Link>
+              <Link href="/contact">Contact</Link>
               <Link href="/post-job">Post Job</Link>
             </div>
           </div>
@@ -222,7 +181,6 @@ function MyApp({ Component, pageProps }) {
           font-size: 14px;
           font-weight: 500;
           transition: all 0.2s;
-          cursor: pointer;
         }
 
         .nav-links a:hover {
@@ -278,7 +236,6 @@ function MyApp({ Component, pageProps }) {
           color: var(--gray-600);
           font-weight: 500;
           border-radius: 8px;
-          cursor: pointer;
         }
 
         .mobile-menu a:hover {
@@ -333,7 +290,6 @@ function MyApp({ Component, pageProps }) {
           text-decoration: none;
           color: var(--gray-600);
           font-size: 14px;
-          cursor: pointer;
         }
 
         .footer-links a:hover {

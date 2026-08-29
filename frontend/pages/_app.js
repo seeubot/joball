@@ -8,17 +8,31 @@ function MyApp({ Component, pageProps }) {
 
   const navigation = [
     { name: 'Browse Jobs', href: '/' },
+    { name: 'About', href: '/#about' },
+    { name: 'Contact', href: '/#contact' },
     { name: 'Post Job', href: '/post-job' },
   ];
 
   const isActive = (href) => {
-    if (href === '/') return router.pathname === '/';
-    return router.pathname.startsWith(href);
+    if (href === '/') return router.pathname === '/' && !router.asPath.includes('#');
+    if (href === '/post-job') return router.pathname === '/post-job';
+    return false;
+  };
+
+  const handleNavClick = (href) => {
+    setMobileMenuOpen(false);
+    if (href.includes('#')) {
+      const [path, hash] = href.split('#');
+      if (router.pathname === path) {
+        document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        router.push(href);
+      }
+    }
   };
 
   return (
     <div>
-      {/* Navigation */}
       <nav className="navbar">
         <div className="nav-container">
           <Link href="/" className="logo">
@@ -26,23 +40,35 @@ function MyApp({ Component, pageProps }) {
             <span>JobAll</span>
           </Link>
 
-          {/* Desktop Nav */}
           <div className="nav-links">
             {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={isActive(item.href) ? 'active' : ''}
-              >
-                {item.name}
-              </Link>
+              item.href.includes('#') ? (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick(item.href);
+                  }}
+                  className={isActive(item.href) ? 'active' : ''}
+                >
+                  {item.name}
+                </a>
+              ) : (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={isActive(item.href) ? 'active' : ''}
+                >
+                  {item.name}
+                </Link>
+              )
             ))}
             <Link href="/post-job" className="nav-cta">
               Post Job
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="mobile-menu-btn"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -53,18 +79,31 @@ function MyApp({ Component, pageProps }) {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="mobile-menu">
             {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={isActive(item.href) ? 'active' : ''}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {item.name}
-              </Link>
+              item.href.includes('#') ? (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleNavClick(item.href);
+                  }}
+                  className={isActive(item.href) ? 'active' : ''}
+                >
+                  {item.name}
+                </a>
+              ) : (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={isActive(item.href) ? 'active' : ''}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              )
             ))}
           </div>
         )}
@@ -72,7 +111,6 @@ function MyApp({ Component, pageProps }) {
 
       <Component {...pageProps} />
 
-      {/* Footer */}
       <footer className="footer">
         <div className="footer-container">
           <div className="footer-content">
@@ -85,11 +123,14 @@ function MyApp({ Component, pageProps }) {
             </div>
             <div className="footer-links">
               <Link href="/">Browse Jobs</Link>
+              <a href="/#about">About</a>
+              <a href="/#contact">Contact</a>
               <Link href="/post-job">Post Job</Link>
             </div>
           </div>
           <div className="footer-bottom">
             <p>&copy; {new Date().getFullYear()} JobAll. All rights reserved.</p>
+            <p className="footer-dev">Developed by SIDDHIK REDDY</p>
           </div>
         </div>
       </footer>
@@ -113,13 +154,9 @@ function MyApp({ Component, pageProps }) {
           --gray-600: #4b5563;
           --gray-700: #374151;
           --gray-900: #111827;
-          --success: #10b981;
-          --warning: #f59e0b;
-          --danger: #ef4444;
           --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
           --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
           --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-          --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         body {
@@ -130,14 +167,12 @@ function MyApp({ Component, pageProps }) {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* Navigation */
         .navbar {
           background: white;
           border-bottom: 1px solid var(--gray-200);
           position: sticky;
           top: 0;
           z-index: 1000;
-          backdrop-filter: blur(8px);
         }
 
         .nav-container {
@@ -187,6 +222,7 @@ function MyApp({ Component, pageProps }) {
           font-size: 14px;
           font-weight: 500;
           transition: all 0.2s;
+          cursor: pointer;
         }
 
         .nav-links a:hover {
@@ -242,6 +278,7 @@ function MyApp({ Component, pageProps }) {
           color: var(--gray-600);
           font-weight: 500;
           border-radius: 8px;
+          cursor: pointer;
         }
 
         .mobile-menu a:hover {
@@ -253,14 +290,12 @@ function MyApp({ Component, pageProps }) {
           color: var(--primary);
         }
 
-        /* Container */
         .container {
           max-width: 1200px;
           margin: 0 auto;
           padding: 24px 20px;
         }
 
-        /* Footer */
         .footer {
           background: white;
           border-top: 1px solid var(--gray-200);
@@ -291,12 +326,14 @@ function MyApp({ Component, pageProps }) {
         .footer-links {
           display: flex;
           gap: 24px;
+          flex-wrap: wrap;
         }
 
         .footer-links a {
           text-decoration: none;
           color: var(--gray-600);
           font-size: 14px;
+          cursor: pointer;
         }
 
         .footer-links a:hover {
@@ -314,7 +351,11 @@ function MyApp({ Component, pageProps }) {
           font-size: 14px;
         }
 
-        /* Responsive */
+        .footer-dev {
+          margin-top: 4px;
+          font-weight: 500;
+        }
+
         @media (max-width: 768px) {
           .nav-links {
             display: none;
@@ -326,6 +367,10 @@ function MyApp({ Component, pageProps }) {
 
           .mobile-menu {
             display: block;
+          }
+
+          .footer-content {
+            flex-direction: column;
           }
         }
       `}</style>

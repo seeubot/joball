@@ -24,8 +24,8 @@ function MyApp({ Component, pageProps }) {
       <nav className="navbar">
         <div className="nav-container">
           <Link href="/" className="logo">
-            <span className="logo-icon">J</span>
-            <span>JobAll</span>
+            <span className="logo-icon">FB</span>
+            <span>Fresher-Bro</span>
           </Link>
 
           <div className="nav-links">
@@ -76,8 +76,8 @@ function MyApp({ Component, pageProps }) {
           <div className="footer-content">
             <div className="footer-brand">
               <Link href="/" className="logo">
-                <span className="logo-icon">J</span>
-                <span>JobAll</span>
+                <span className="logo-icon">FB</span>
+                <span>Fresher-Bro</span>
               </Link>
               <p>A community-driven job portal for freshers.</p>
             </div>
@@ -90,7 +90,7 @@ function MyApp({ Component, pageProps }) {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; {new Date().getFullYear()} JobAll. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Fresher-Bro. All rights reserved.</p>
             <p className="footer-dev">Developed by SIDDHIK REDDY</p>
           </div>
         </div>
@@ -154,16 +154,17 @@ function MyApp({ Component, pageProps }) {
         }
 
         .logo-icon {
-          width: 32px;
-          height: 32px;
-          background: var(--primary);
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #4f6ef7 0%, #764ba2 100%);
           color: white;
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 700;
-          font-size: 18px;
+          font-size: 14px;
+          letter-spacing: 0.5px;
         }
 
         .nav-links {

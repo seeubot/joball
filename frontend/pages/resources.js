@@ -15,11 +15,16 @@ export default function Resources() {
   });
 
   useEffect(() => {
-    fetchResources(activeTab);
+    if (activeTab === 'resumes') {
+      fetchResources('resume');
+    } else if (activeTab === 'interview') {
+      fetchResources('interview');
+    }
   }, [activeTab]);
 
   const fetchResources = async (category) => {
     setLoading(true);
+    setResources([]);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resources?category=${category}`);
       const result = await response.json();
@@ -61,7 +66,7 @@ export default function Resources() {
     formDataToSend.append('file', file);
     formDataToSend.append('title', formData.title);
     formDataToSend.append('description', formData.description);
-    formDataToSend.append('category', activeTab === 'resumes' ? 'resume' : 'interview');
+    formDataToSend.append('category', formData.category);
     formDataToSend.append('uploadedBy', formData.uploadedBy || 'Anonymous');
 
     try {
@@ -76,7 +81,9 @@ export default function Resources() {
         setUploadSuccess(true);
         setFormData({ title: '', description: '', category: 'resume', uploadedBy: '' });
         e.target.value = '';
-        fetchResources(activeTab);
+        // Refresh the current tab
+        const currentCategory = activeTab === 'resumes' ? 'resume' : 'interview';
+        fetchResources(currentCategory);
       } else {
         setUploadError(result.error || 'Failed to upload resource.');
       }
@@ -90,10 +97,7 @@ export default function Resources() {
 
   const handleDownload = async (resourceId, fileName) => {
     try {
-      // Use Vercel proxy URL
       const downloadUrl = `/api/download?id=${resourceId}`;
-      
-      // Create temporary link
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = fileName;
@@ -102,9 +106,9 @@ export default function Resources() {
       link.click();
       document.body.removeChild(link);
       
-      // Refresh resources after download to update count
       setTimeout(() => {
-        fetchResources(activeTab);
+        const currentCategory = activeTab === 'resumes' ? 'resume' : 'interview';
+        fetchResources(currentCategory);
       }, 2000);
     } catch (error) {
       console.error('Download error:', error);

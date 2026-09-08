@@ -1,5 +1,5 @@
 export default function Contact() {
-  const phoneNumber = '+918897350151';
+  const phoneNumber = '';
   const whatsappLink = `https://wa.me/918897350151?text=${encodeURIComponent('Hi Siddhik, I have a query regarding Fresher-Bro.')}`;
 
   return (

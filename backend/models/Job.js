@@ -6,6 +6,11 @@ const jobSchema = new mongoose.Schema({
     enum: ['job', 'walkin'],
     required: true
   },
+  category: {
+    type: String,
+    enum: ['IT', 'Non-IT'],
+    required: true
+  },
   jobTitle: {
     type: String,
     required: true,
@@ -20,8 +25,8 @@ const jobSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    enum: ['Hyderabad', 'Bengaluru'],
     required: true,
+    trim: true,
     index: true
   },
   skills: [{
@@ -39,16 +44,12 @@ const jobSchema = new mongoose.Schema({
   },
   batchEligible: [{
     type: String,
-    enum: ['2023', '2024', '2025', '2026']
+    enum: ['2024', '2025', '2026']
   }],
   isActive: {
     type: Boolean,
     default: true,
     index: true
-  },
-  experience: {
-    type: String,
-    default: 'Fresher'
   },
   // Walk-in specific fields
   eventDate: Date,
@@ -61,8 +62,8 @@ const jobSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for better query performance
-jobSchema.index({ city: 1, type: 1, isActive: 1 });
+// Compound indexes
+jobSchema.index({ city: 1, type: 1, category: 1, isActive: 1 });
 jobSchema.index({ skills: 1, isActive: 1 });
 
 module.exports = mongoose.model('Job', jobSchema);

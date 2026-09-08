@@ -20,9 +20,14 @@ export default function JobCard({ job, onApply }) {
   return (
     <div className={`job-card ${job.type === 'walkin' ? 'walkin' : ''}`}>
       <div className="card-header">
-        <span className={`badge ${job.type}`}>
-          {job.type === 'walkin' ? 'Walk-in Drive' : 'Job Opening'}
-        </span>
+        <div className="badges">
+          <span className={`badge ${job.type}`}>
+            {job.type === 'walkin' ? 'Walk-in Drive' : 'Job Opening'}
+          </span>
+          <span className={`badge category ${job.category === 'IT' ? 'it' : 'non-it'}`}>
+            {job.category}
+          </span>
+        </div>
         {isExpiringSoon() && (
           <span className="expiring">Expires in {getDaysLeft()} days</span>
         )}
@@ -40,27 +45,29 @@ export default function JobCard({ job, onApply }) {
         </span>
 
         {job.type === 'walkin' ? (
-          <span className="meta-item">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-            </svg>
-            {formatDate(job.eventDate)}
-          </span>
-        ) : (
           <>
-            <span className="meta-item">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-              {job.experience}
-            </span>
             <span className="meta-item">
               <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
-              Apply by {formatDate(job.expiryDate)}
+              {formatDate(job.eventDate)}
             </span>
+            {job.timing && (
+              <span className="meta-item">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+                {job.timing}
+              </span>
+            )}
           </>
+        ) : (
+          <span className="meta-item">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            </svg>
+            Apply by {formatDate(job.expiryDate)}
+          </span>
         )}
       </div>
 
@@ -124,6 +131,12 @@ export default function JobCard({ job, onApply }) {
           flex-wrap: wrap;
         }
 
+        .badges {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
         .badge {
           padding: 4px 12px;
           border-radius: 9999px;
@@ -137,6 +150,14 @@ export default function JobCard({ job, onApply }) {
         .badge.walkin {
           background: #fffbeb;
           color: #b45309;
+        }
+        .badge.category.it {
+          background: #f0fdf4;
+          color: #15803d;
+        }
+        .badge.category.non-it {
+          background: #fdf2f8;
+          color: #be185d;
         }
 
         .expiring {

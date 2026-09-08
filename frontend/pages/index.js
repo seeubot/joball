@@ -3,6 +3,7 @@ import JobCard from '../components/JobCard';
 
 export default function Home() {
   const [jobs, setJobs] = useState([]);
+  const [cities, setCities] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -10,12 +11,17 @@ export default function Home() {
   const [filters, setFilters] = useState({
     city: '',
     type: '',
+    category: '',
     skill: '',
     batch: '',
     search: ''
   });
   const [loading, setLoading] = useState(true);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  useEffect(() => {
+    fetchCities();
+  }, []);
 
   useEffect(() => {
     fetchJobs();
@@ -27,12 +33,23 @@ export default function Home() {
   }, [filters]);
 
   useEffect(() => {
-    // Check localStorage for don't show again preference
     const dontShow = localStorage.getItem('dontShowWarning');
     if (dontShow === 'true') {
       setDontShowAgain(true);
     }
   }, []);
+
+  const fetchCities = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs/cities`);
+      const result = await response.json();
+      if (result.success) {
+        setCities(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    }
+  };
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -58,6 +75,7 @@ export default function Home() {
     setFilters({
       city: '',
       type: '',
+      category: '',
       skill: '',
       batch: '',
       search: ''
@@ -67,8 +85,6 @@ export default function Home() {
 
   const handleApplyClick = (job) => {
     setSelectedJob(job);
-    
-    // If user chose don't show again, apply directly
     if (dontShowAgain) {
       if (job.applyLink) {
         window.open(job.applyLink, '_blank');
@@ -137,14 +153,14 @@ export default function Home() {
         <div className="filters-panel">
           <div className="filters-grid">
             <div className="filter-group">
-              <label>City</label>
+              <label>Category</label>
               <select
-                value={filters.city}
-                onChange={(e) => setFilters({...filters, city: e.target.value})}
+                value={filters.category}
+                onChange={(e) => setFilters({...filters, category: e.target.value})}
               >
-                <option value="">All Cities</option>
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Bengaluru">Bengaluru</option>
+                <option value="">All Categories</option>
+                <option value="IT">IT</option>
+                <option value="Non-IT">Non-IT</option>
               </select>
             </div>
 
@@ -157,6 +173,19 @@ export default function Home() {
                 <option value="">All Types</option>
                 <option value="job">Job Openings</option>
                 <option value="walkin">Walk-in Drives</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label>City</label>
+              <select
+                value={filters.city}
+                onChange={(e) => setFilters({...filters, city: e.target.value})}
+              >
+                <option value="">All Cities</option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
               </select>
             </div>
 
@@ -199,29 +228,24 @@ export default function Home() {
       {activeFilterCount > 0 && !showFilters && (
         <div className="active-filters">
           {filters.search && (
-            <span className="active-filter-chip">
-              Search: {filters.search}
-            </span>
+            <span className="active-filter-chip">Search: {filters.search}</span>
           )}
-          {filters.city && (
-            <span className="active-filter-chip">
-              {filters.city}
-            </span>
+          {filters.category && (
+            <span className="active-filter-chip">{filters.category}</span>
           )}
           {filters.type && (
             <span className="active-filter-chip">
               {filters.type === 'job' ? 'Job Opening' : 'Walk-in Drive'}
             </span>
           )}
+          {filters.city && (
+            <span className="active-filter-chip">{filters.city}</span>
+          )}
           {filters.batch && (
-            <span className="active-filter-chip">
-              {filters.batch} Batch
-            </span>
+            <span className="active-filter-chip">{filters.batch} Batch</span>
           )}
           {filters.skill && (
-            <span className="active-filter-chip">
-              Skill: {filters.skill}
-            </span>
+            <span className="active-filter-chip">Skill: {filters.skill}</span>
           )}
         </div>
       )}

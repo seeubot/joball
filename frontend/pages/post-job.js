@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import Alert from '../components/Alert';
 
 export default function PostJob() {
   const router = useRouter();
@@ -8,14 +7,14 @@ export default function PostJob() {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     type: 'job',
+    category: 'IT',
     jobTitle: '',
     company: '',
-    city: 'Hyderabad',
+    city: '',
     skills: '',
     applyLink: '',
     expiryDate: '',
     batchEligible: [],
-    experience: 'Fresher',
     eventDate: '',
     lastDate: '',
     venue: '',
@@ -69,10 +68,8 @@ export default function PostJob() {
     <div className="container">
       <div className="page-header">
         <h1>Post a Job Opening</h1>
-        <p>Share job opportunities with freshers in Hyderabad and Bengaluru.</p>
+        <p>Share job opportunities with freshers</p>
       </div>
-
-      <Alert />
 
       <form onSubmit={handleSubmit} className="post-form">
         {/* Job Type */}
@@ -108,7 +105,19 @@ export default function PostJob() {
         <div className="form-section">
           <h2>Basic Information</h2>
           <div className="form-grid">
-            <div className="form-group full">
+            <div className="form-group">
+              <label>Category *</label>
+              <select
+                required
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              >
+                <option value="IT">IT</option>
+                <option value="Non-IT">Non-IT</option>
+              </select>
+            </div>
+
+            <div className="form-group">
               <label>{jobType === 'walkin' ? 'Job Role' : 'Job Title'} *</label>
               <input
                 type="text"
@@ -118,6 +127,7 @@ export default function PostJob() {
                 onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
               />
             </div>
+
             <div className="form-group">
               <label>Company Name *</label>
               <input
@@ -128,16 +138,16 @@ export default function PostJob() {
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               />
             </div>
+
             <div className="form-group">
               <label>City *</label>
-              <select
+              <input
+                type="text"
                 required
+                placeholder="e.g., Hyderabad, Bengaluru, Chennai"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              >
-                <option value="Hyderabad">Hyderabad</option>
-                <option value="Bengaluru">Bengaluru</option>
-              </select>
+              />
             </div>
           </div>
         </div>
@@ -156,6 +166,7 @@ export default function PostJob() {
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
               />
             </div>
+
             <div className="form-group full">
               <label>Eligible Batches *</label>
               <div className="batch-checkboxes">
@@ -179,16 +190,6 @@ export default function PostJob() {
           <div className="form-section">
             <h2>Application Details</h2>
             <div className="form-grid">
-              <div className="form-group">
-                <label>Experience *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g., Fresher"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                />
-              </div>
               <div className="form-group">
                 <label>Expiry Date *</label>
                 <input

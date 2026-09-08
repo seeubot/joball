@@ -32,8 +32,8 @@ mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => console.log('✅ MongoDB connected successfully'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
@@ -73,7 +73,7 @@ const upload = multer({
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    message: 'JobAll API is running',
+    message: 'Fresher-Bro API is running',
     timestamp: new Date()
   });
 });
@@ -83,7 +83,7 @@ app.get('/health', (req, res) => {
 // Get all active jobs with filters
 app.get('/api/jobs', async (req, res) => {
   try {
-    const { city, type, skill, batch, search } = req.query;
+    const { city, type, category, skill, batch, search } = req.query;
     const filter = { 
       isActive: true, 
       expiryDate: { $gt: new Date() } 
@@ -91,6 +91,7 @@ app.get('/api/jobs', async (req, res) => {
     
     if (city) filter.city = city;
     if (type) filter.type = type;
+    if (category) filter.category = category;
     if (skill) filter.skills = { $in: [skill] };
     if (batch) filter.batchEligible = batch;
     if (search) {
@@ -106,6 +107,25 @@ app.get('/api/jobs', async (req, res) => {
       success: true,
       count: jobs.length,
       data: jobs
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Get unique cities from active jobs
+app.get('/api/jobs/cities', async (req, res) => {
+  try {
+    const cities = await Job.distinct('city', { 
+      isActive: true, 
+      expiryDate: { $gt: new Date() } 
+    });
+    res.json({
+      success: true,
+      data: cities.sort()
     });
   } catch (error) {
     res.status(500).json({ 
@@ -142,6 +162,7 @@ app.post('/api/jobs', async (req, res) => {
   try {
     const {
       type,
+      category,
       jobTitle,
       company,
       city,
@@ -149,7 +170,6 @@ app.post('/api/jobs', async (req, res) => {
       applyLink,
       expiryDate,
       batchEligible,
-      experience,
       eventDate,
       lastDate,
       venue,
@@ -157,7 +177,7 @@ app.post('/api/jobs', async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!type || !jobTitle || !company || !city || !expiryDate) {
+    if (!type || !category || !jobTitle || !company || !city || !expiryDate) {
       return res.status(400).json({
         success: false,
         error: 'Please provide all required fields'
@@ -171,23 +191,23 @@ app.post('/api/jobs', async (req, res) => {
       });
     }
 
-    if (!['Hyderabad', 'Bengaluru'].includes(city)) {
+    if (!['IT', 'Non-IT'].includes(category)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid city. Only Hyderabad and Bengaluru are allowed'
+        error: 'Invalid category'
       });
     }
 
     const jobData = {
       type,
+      category,
       jobTitle,
       company,
-      city,
-      skills: Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()),
+      city: city.trim(),
+      skills: Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(Boolean),
       applyLink,
       expiryDate: new Date(expiryDate),
       batchEligible: Array.isArray(batchEligible) ? batchEligible : [batchEligible],
-      experience: experience || 'Fresher',
       isActive: true,
       postedAt: new Date()
     };
@@ -203,6 +223,9 @@ app.post('/api/jobs', async (req, res) => {
       jobData.lastDate = new Date(lastDate);
       jobData.venue = venue;
       jobData.timing = timing;
+      
+      // For walk-ins, expiry is the event date
+      jobData.expiryDate = new Date(eventDate);
     }
 
     const job = new Job(jobData);
@@ -283,7 +306,9 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
 
     if (!title || !category) {
       // Delete uploaded file if validation fails
-      fs.unlinkSync(req.file.path);
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({
         success: false,
         error: 'Title and category are required'
@@ -291,7 +316,9 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
     }
 
     if (!['resume', 'interview'].includes(category)) {
-      fs.unlinkSync(req.file.path);
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
       return res.status(400).json({
         success: false,
         error: 'Invalid category'
@@ -346,7 +373,7 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
   }
 });
 
-// Download resource (increments download count)
+// Download resource
 app.get('/api/resources/:id/download', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
@@ -379,7 +406,33 @@ app.get('/api/resources/:id/download', async (req, res) => {
   }
 });
 
-// Delete resource (admin only - no auth for now)
+// Increment download count (for proxy downloads)
+app.post('/api/resources/:id/download-count', async (req, res) => {
+  try {
+    const resource = await Resource.findById(req.params.id);
+    if (!resource) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Resource not found' 
+      });
+    }
+
+    resource.downloads += 1;
+    await resource.save();
+
+    res.json({
+      success: true,
+      downloads: resource.downloads
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// Delete resource
 app.delete('/api/resources/:id', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
@@ -420,10 +473,10 @@ cron.schedule('*/30 * * * *', async () => {
       { $set: { isActive: false } }
     );
     if (result.modifiedCount > 0) {
-      console.log(`Deactivated ${result.modifiedCount} expired jobs`);
+      console.log(`🔄 Deactivated ${result.modifiedCount} expired jobs`);
     }
   } catch (error) {
-    console.error('Cron job error:', error);
+    console.error('❌ Cron job error:', error);
   }
 });
 
@@ -438,5 +491,5 @@ app.use((error, req, res, next) => {
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-  console.log(`JobAll API running on port ${PORT}`);
+  console.log(`🚀 Fresher-Bro API running on port ${PORT}`);
 });

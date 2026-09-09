@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const crypto = require('crypto');
 const cron = require('node-cron');
 const multer = require('multer');
 const path = require('path');
@@ -19,7 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Create uploads directory if it doesn't exist
+// Create uploads directory
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -32,10 +33,96 @@ mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('✅ MongoDB connected successfully'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB error:', err));
 
-// Configure Multer for file uploads
+// API Key for write operations
+const API_KEY = process.env.API_KEY || 'fresher-Bro@1660440';
+
+// Rate limiting configuration
+const rateLimitConfig = {
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 50,
+  cleanupIntervalMs: 30 * 60 * 1000
+};
+
+// In-memory rate limiter
+const requestLog = {};
+
+function getClientIp(req) {
+  return req.headers['x-forwarded-for'] || 
+         req.headers['x-real-ip'] || 
+         req.connection.remoteAddress || 
+         req.socket.remoteAddress || 
+         'unknown';
+}
+
+function simpleRateLimit(req, res, next) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+
+  if (!requestLog[ip]) {
+    requestLog[ip] = { count: 1, firstRequest: now, blocked: false };
+  } else {
+    if (now - requestLog[ip].firstRequest > rateLimitConfig.windowMs) {
+      requestLog[ip] = { count: 1, firstRequest: now, blocked: false };
+    } else {
+      requestLog[ip].count++;
+    }
+  }
+
+  if (requestLog[ip].count > rateLimitConfig.maxRequests) {
+    return res.status(429).json({ 
+      success: false, 
+      error: 'Too many requests. Please try again later.' 
+    });
+  }
+
+  next();
+}
+
+// Cleanup old entries every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const ip in requestLog) {
+    if (now - requestLog[ip].firstRequest > rateLimitConfig.cleanupIntervalMs) {
+      delete requestLog[ip];
+    }
+  }
+}, rateLimitConfig.cleanupIntervalMs);
+
+// API key validation
+function validateApiKey(req, res, next) {
+  if (req.method === 'GET') {
+    return next();
+  }
+
+  const apiKey = req.headers['x-api-key'];
+  const expectedKey = API_KEY;
+
+  if (apiKey && apiKey.length === expectedKey.length) {
+    const apiKeyBuffer = Buffer.from(apiKey);
+    const expectedBuffer = Buffer.from(expectedKey);
+    
+    if (crypto.timingSafeEqual(apiKeyBuffer, expectedBuffer)) {
+      return next();
+    }
+  }
+
+  res.status(401).json({ success: false, error: 'Unauthorized' });
+}
+
+// Apply security middleware
+app.use('/api', validateApiKey);
+app.use('/api', (req, res, next) => {
+  if (req.method === 'POST' || req.method === 'DELETE') {
+    simpleRateLimit(req, res, next);
+  } else {
+    next();
+  }
+});
+
+// Configure Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -57,19 +144,17 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF and DOCX files are allowed.'), false);
+    cb(new Error('Invalid file type'), false);
   }
 };
 
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: {
-    fileSize: 2 * 1024 * 1024 // 2MB
-  }
+  limits: { fileSize: 2 * 1024 * 1024 }
 });
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -78,9 +163,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ==================== JOB ROUTES ====================
-
-// Get all active jobs with filters
+// Get all jobs
 app.get('/api/jobs', async (req, res) => {
   try {
     const { city, type, category, skill, batch, search } = req.query;
@@ -103,99 +186,55 @@ app.get('/api/jobs', async (req, res) => {
     }
     
     const jobs = await Job.find(filter).sort({ postedAt: -1 });
-    res.json({
-      success: true,
-      count: jobs.length,
-      data: jobs
-    });
+    res.json({ success: true, count: jobs.length, data: jobs });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get unique cities from active jobs
+// Get cities
 app.get('/api/jobs/cities', async (req, res) => {
   try {
     const cities = await Job.distinct('city', { 
       isActive: true, 
       expiryDate: { $gt: new Date() } 
     });
-    res.json({
-      success: true,
-      data: cities.sort()
-    });
+    res.json({ success: true, data: cities.sort() });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get single job by ID
-app.get('/api/jobs/:id', async (req, res) => {
-  try {
-    const job = await Job.findById(req.params.id);
-    if (!job || !job.isActive) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Job not found or expired' 
-      });
-    }
-    res.json({
-      success: true,
-      data: job
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// Post a new job
+// Post job
 app.post('/api/jobs', async (req, res) => {
   try {
-    const {
-      type,
-      category,
-      jobTitle,
-      company,
-      city,
-      skills,
-      applyLink,
-      expiryDate,
-      batchEligible,
-      eventDate,
-      lastDate,
-      venue,
-      timing
-    } = req.body;
+    const { type, category, jobTitle, company, city, skills, applyLink, expiryDate, batchEligible, eventDate, lastDate, venue, timing } = req.body;
 
-    // Validation
-    if (!type || !category || !jobTitle || !company || !city || !expiryDate) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please provide all required fields'
-      });
+    if (!type || !category || !jobTitle || !company || !city) {
+      return res.status(400).json({ success: false, error: 'Please provide all required fields' });
     }
 
     if (!['job', 'walkin'].includes(type)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid job type'
-      });
+      return res.status(400).json({ success: false, error: 'Invalid job type' });
     }
 
     if (!['IT', 'Non-IT'].includes(category)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid category'
-      });
+      return res.status(400).json({ success: false, error: 'Invalid category' });
+    }
+
+    let finalExpiryDate;
+    if (type === 'walkin') {
+      if (!eventDate) {
+        return res.status(400).json({ success: false, error: 'Walk-in requires event date' });
+      }
+      finalExpiryDate = new Date(eventDate);
+    } else {
+      if (expiryDate) {
+        finalExpiryDate = new Date(expiryDate);
+      } else {
+        finalExpiryDate = new Date();
+        finalExpiryDate.setDate(finalExpiryDate.getDate() + 3);
+      }
     }
 
     const jobData = {
@@ -205,139 +244,68 @@ app.post('/api/jobs', async (req, res) => {
       company,
       city: city.trim(),
       skills: Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(Boolean),
-      applyLink,
-      expiryDate: new Date(expiryDate),
+      applyLink: applyLink || '',
+      expiryDate: finalExpiryDate,
       batchEligible: Array.isArray(batchEligible) ? batchEligible : [batchEligible],
       isActive: true,
       postedAt: new Date()
     };
 
     if (type === 'walkin') {
-      if (!eventDate || !venue || !lastDate) {
-        return res.status(400).json({
-          success: false,
-          error: 'Walk-in drives require event date, venue, and last date'
-        });
+      if (!venue) {
+        return res.status(400).json({ success: false, error: 'Walk-in requires venue' });
       }
       jobData.eventDate = new Date(eventDate);
-      jobData.lastDate = new Date(lastDate);
+      jobData.lastDate = lastDate ? new Date(lastDate) : new Date(eventDate);
       jobData.venue = venue;
-      jobData.timing = timing;
-      
-      // For walk-ins, expiry is the event date
-      jobData.expiryDate = new Date(eventDate);
+      jobData.timing = timing || '';
     }
 
     const job = new Job(jobData);
     await job.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Job posted successfully!',
-      data: job
-    });
+    res.status(201).json({ success: true, message: 'Job posted successfully!', data: job });
   } catch (error) {
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
-// ==================== RESOURCE ROUTES ====================
-
-// Get all resources
+// Get resources
 app.get('/api/resources', async (req, res) => {
   try {
     const { category } = req.query;
     const filter = { isActive: true };
-    
     if (category && ['resume', 'interview'].includes(category)) {
       filter.category = category;
     }
-    
     const resources = await Resource.find(filter).sort({ uploadedAt: -1 });
-    res.json({
-      success: true,
-      count: resources.length,
-      data: resources
-    });
+    res.json({ success: true, count: resources.length, data: resources });
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Get single resource
-app.get('/api/resources/:id', async (req, res) => {
-  try {
-    const resource = await Resource.findById(req.params.id);
-    if (!resource || !resource.isActive) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Resource not found' 
-      });
-    }
-    res.json({
-      success: true,
-      data: resource
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// Upload new resource
+// Upload resource
 app.post('/api/resources', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please upload a file'
-      });
+      return res.status(400).json({ success: false, error: 'Please upload a file' });
     }
 
     const { title, description, category, uploadedBy } = req.body;
 
     if (!title || !category) {
-      // Delete uploaded file if validation fails
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(400).json({
-        success: false,
-        error: 'Title and category are required'
-      });
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ success: false, error: 'Title and category are required' });
     }
 
-    if (!['resume', 'interview'].includes(category)) {
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
-      }
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid category'
-      });
-    }
-
-    // Determine file type
     const ext = path.extname(req.file.originalname).toLowerCase();
-    const fileTypeMap = {
-      '.pdf': 'pdf',
-      '.doc': 'doc',
-      '.docx': 'docx'
-    };
+    const fileTypeMap = { '.pdf': 'pdf', '.doc': 'doc', '.docx': 'docx' };
 
     const resource = new Resource({
       title,
       description: description || '',
       category,
-      fileUrl: `/uploads/${req.file.filename}`,
+      fileUrl: '/uploads/' + req.file.filename,
       fileName: req.file.originalname,
       fileType: fileTypeMap[ext] || 'pdf',
       fileSize: req.file.size,
@@ -347,29 +315,10 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
     });
 
     await resource.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Resource uploaded successfully!',
-      data: resource
-    });
+    res.status(201).json({ success: true, message: 'Resource uploaded!', data: resource });
   } catch (error) {
-    // Delete uploaded file if database save fails
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
-    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        error: 'File size must be less than 2MB'
-      });
-    }
-    
-    res.status(400).json({ 
-      success: false, 
-      error: error.message 
-    });
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
@@ -378,94 +327,22 @@ app.get('/api/resources/:id/download', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
     if (!resource || !resource.isActive) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Resource not found' 
-      });
+      return res.status(404).json({ success: false, error: 'Resource not found' });
     }
-
-    // Increment download count
     resource.downloads += 1;
     await resource.save();
-
-    // Send file
     const filePath = path.join(__dirname, resource.fileUrl);
     if (fs.existsSync(filePath)) {
       res.download(filePath, resource.fileName);
     } else {
-      res.status(404).json({
-        success: false,
-        error: 'File not found on server'
-      });
+      res.status(404).json({ success: false, error: 'File not found' });
     }
   } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Increment download count (for proxy downloads)
-app.post('/api/resources/:id/download-count', async (req, res) => {
-  try {
-    const resource = await Resource.findById(req.params.id);
-    if (!resource) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Resource not found' 
-      });
-    }
-
-    resource.downloads += 1;
-    await resource.save();
-
-    res.json({
-      success: true,
-      downloads: resource.downloads
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// Delete resource
-app.delete('/api/resources/:id', async (req, res) => {
-  try {
-    const resource = await Resource.findById(req.params.id);
-    if (!resource) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Resource not found' 
-      });
-    }
-
-    // Delete file from disk
-    const filePath = path.join(__dirname, resource.fileUrl);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    await Resource.findByIdAndDelete(req.params.id);
-
-    res.json({
-      success: true,
-      message: 'Resource deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
-
-// ==================== CRON JOBS ====================
-
-// Cron job to deactivate expired jobs (runs every 30 minutes)
+// Cron job
 cron.schedule('*/30 * * * *', async () => {
   try {
     const result = await Job.updateMany(
@@ -473,23 +350,14 @@ cron.schedule('*/30 * * * *', async () => {
       { $set: { isActive: false } }
     );
     if (result.modifiedCount > 0) {
-      console.log(`🔄 Deactivated ${result.modifiedCount} expired jobs`);
+      console.log('Deactivated ' + result.modifiedCount + ' expired jobs');
     }
   } catch (error) {
-    console.error('❌ Cron job error:', error);
+    console.error('Cron error:', error);
   }
-});
-
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  res.status(500).json({
-    success: false,
-    error: error.message || 'Internal server error'
-  });
 });
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-  console.log(`🚀 Fresher-Bro API running on port ${PORT}`);
+  console.log('Fresher-Bro API running on port ' + PORT);
 });

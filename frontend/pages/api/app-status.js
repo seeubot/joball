@@ -10,8 +10,8 @@ export default async function handler(req, res) {
   res.status(200).json({
     success: true,
     data: {
-      maintenanceMode: true,
-      forceUpdate: true,
+      maintenanceMode: false,
+      forceUpdate: false,
       latestVersion: '1.0.0',
       minSupportedVersion: '1.0.0',
       updateMessage: '',

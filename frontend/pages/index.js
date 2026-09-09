@@ -19,6 +19,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
 
+  const whatsappChannelLink = 'https://chat.whatsapp.com/L1bDEzKBWZXLnW82HTDdW7?s=cl&p=a&mlu=4&ilr=4';
+
   useEffect(() => {
     fetchCities();
   }, []);
@@ -114,6 +116,29 @@ export default function Home() {
 
   return (
     <div className="container">
+      {/* WhatsApp Channel CTA */}
+      <div className="whatsapp-channel-banner">
+        <div className="channel-content">
+          <div className="channel-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+          </div>
+          <div className="channel-text">
+            <h3>WhatsApp Channel</h3>
+            <p>Daily job updates మీ కోసం</p>
+          </div>
+        </div>
+        <a 
+          href={whatsappChannelLink} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="channel-btn"
+        >
+          Join Now
+        </a>
+      </div>
+
       {/* Search Bar */}
       <div className="search-bar">
         <div className="search-input-wrapper">
@@ -269,10 +294,20 @@ export default function Home() {
             <div className="no-jobs">
               <h3>No jobs found</h3>
               <p>Try adjusting your filters or check back later.</p>
+              <p className="telugu-text">కొత్త ఉద్యోగాలు త్వరలో వస్తాయి</p>
             </div>
           )}
         </div>
       )}
+
+      {/* Post Job CTA */}
+      <div className="post-job-cta">
+        <h3>Have a job opening?</h3>
+        <p>మీకు తెలిసిన ఉద్యోగ అవకాశాలను share చేయండి</p>
+        <a href="/post-job" className="post-job-btn">
+          Post a Job
+        </a>
+      </div>
 
       {/* Warning Modal */}
       {showWarning && (
@@ -292,6 +327,9 @@ export default function Home() {
                 Do not give or take any money to anyone for job applications or interviews. 
                 We are not responsible for any money transfer activities. 
                 Genuine companies never ask for payment. Stay safe!
+              </p>
+              <p className="telugu-warning">
+                ఉద్యోగం కోసం ఎవరికీ డబ్బు చెల్లించవద్దు
               </p>
               
               {selectedJob && (
@@ -327,6 +365,67 @@ export default function Home() {
       )}
 
       <style jsx>{`
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 24px 20px;
+        }
+
+        /* WhatsApp Channel Banner */
+        .whatsapp-channel-banner {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-radius: 12px;
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+        .channel-content {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .channel-icon {
+          width: 48px;
+          height: 48px;
+          background: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #10b981;
+          flex-shrink: 0;
+        }
+        .channel-text h3 {
+          color: white;
+          font-size: 16px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .channel-text p {
+          color: #d1fae5;
+          font-size: 13px;
+          margin: 2px 0 0;
+        }
+        .channel-btn {
+          background: white;
+          color: #059669;
+          padding: 10px 20px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .channel-btn:hover {
+          background: #f0fdf4;
+          transform: scale(1.05);
+        }
+
         .search-bar {
           display: flex;
           gap: 12px;
@@ -517,6 +616,7 @@ export default function Home() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
           gap: 20px;
+          margin-bottom: 40px;
         }
 
         .loading {
@@ -552,8 +652,48 @@ export default function Home() {
         .no-jobs p {
           color: #6b7280;
         }
+        .telugu-text {
+          font-size: 14px;
+          color: #9ca3af;
+          margin-top: 8px;
+        }
 
-        /* Modal Styles */
+        /* Post Job CTA */
+        .post-job-cta {
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 32px;
+          text-align: center;
+          margin-bottom: 24px;
+        }
+        .post-job-cta h3 {
+          font-size: 20px;
+          font-weight: 700;
+          color: #111827;
+          margin-bottom: 4px;
+        }
+        .post-job-cta p {
+          color: #6b7280;
+          font-size: 14px;
+          margin-bottom: 16px;
+        }
+        .post-job-btn {
+          display: inline-block;
+          background: #4f6ef7;
+          color: white;
+          padding: 12px 24px;
+          border-radius: 8px;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+        .post-job-btn:hover {
+          background: #3b55e6;
+        }
+
+        /* Modal */
         .modal-overlay {
           position: fixed;
           top: 0;
@@ -572,7 +712,6 @@ export default function Home() {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-
         .modal-content {
           background: white;
           border-radius: 12px;
@@ -591,7 +730,6 @@ export default function Home() {
             transform: scale(1);
           }
         }
-
         .modal-header {
           display: flex;
           align-items: center;
@@ -614,7 +752,6 @@ export default function Home() {
           font-weight: 700;
           color: #111827;
         }
-
         .modal-body {
           margin-bottom: 16px;
         }
@@ -624,7 +761,10 @@ export default function Home() {
           line-height: 1.6;
           margin-bottom: 16px;
         }
-
+        .telugu-warning {
+          color: #dc2626 !important;
+          font-weight: 500;
+        }
         .selected-job-info {
           background: #f9fafb;
           padding: 16px;
@@ -648,7 +788,6 @@ export default function Home() {
           font-size: 14px;
           color: #6b7280;
         }
-
         .dont-show-again {
           margin-bottom: 16px;
         }
@@ -668,7 +807,6 @@ export default function Home() {
           font-size: 14px;
           color: #374151;
         }
-
         .modal-actions {
           display: flex;
           gap: 12px;
@@ -705,6 +843,13 @@ export default function Home() {
         }
 
         @media (max-width: 768px) {
+          .whatsapp-channel-banner {
+            flex-direction: column;
+            text-align: center;
+          }
+          .channel-content {
+            flex-direction: column;
+          }
           .jobs-grid {
             grid-template-columns: 1fr;
           }

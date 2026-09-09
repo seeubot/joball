@@ -26,11 +26,20 @@ export default function PostJob() {
     setSubmitting(true);
 
     try {
-      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(Boolean);
+      // Split skills by newlines, commas, or spaces
+      const skillsArray = formData.skills
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
       const finalData = {
         ...formData,
         skills: skillsArray,
-        batchEligible: formData.batchEligible
+        batchEligible: formData.batchEligible,
+        applyLink: formData.applyLink || undefined,
+        expiryDate: formData.expiryDate || undefined,
+        lastDate: formData.lastDate || undefined,
+        timing: formData.timing || undefined
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs`, {
@@ -157,14 +166,17 @@ export default function PostJob() {
           <h2>Job Details</h2>
           <div className="form-grid">
             <div className="form-group full">
-              <label>Skills Required * (comma separated)</label>
-              <input
-                type="text"
+              <label>Skills Required *</label>
+              <textarea
                 required
-                placeholder="e.g., JavaScript, React, Node.js"
+                rows="4"
+                placeholder={'Paste skills here (one per line or comma separated)\ne.g.,\nJavaScript\nReact\nNode.js\nCommunication'}
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
               />
+              <span className="field-hint">
+                Skills paste చేయండి - one per line or comma separated
+              </span>
             </div>
 
             <div className="form-group full">
@@ -191,24 +203,29 @@ export default function PostJob() {
             <h2>Application Details</h2>
             <div className="form-grid">
               <div className="form-group">
-                <label>Expiry Date *</label>
-                <input
-                  type="date"
-                  required
-                  min={new Date().toISOString().split('T')[0]}
-                  value={formData.expiryDate}
-                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
-                />
-              </div>
-              <div className="form-group full">
-                <label>Apply Link *</label>
+                <label>Apply Link (Optional)</label>
                 <input
                   type="url"
-                  required
                   placeholder="https://company.com/careers"
                   value={formData.applyLink}
                   onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
                 />
+                <span className="field-hint">
+                  Link లేకపోతే ఖాళీగా వదలండి
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label>Last Date to Apply (Optional)</label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                />
+                <span className="field-hint">
+                  తేదీ తెలియకపోతే 3 రోజుల్లో expire అవుతుంది
+                </span>
               </div>
             </div>
           </div>
@@ -226,10 +243,9 @@ export default function PostJob() {
                 />
               </div>
               <div className="form-group">
-                <label>Event Timing *</label>
+                <label>Event Timing (Optional)</label>
                 <input
                   type="text"
-                  required
                   placeholder="e.g., 9:00 AM - 5:00 PM"
                   value={formData.timing}
                   onChange={(e) => setFormData({ ...formData, timing: e.target.value })}
@@ -246,10 +262,9 @@ export default function PostJob() {
                 />
               </div>
               <div className="form-group">
-                <label>Last Date to Register *</label>
+                <label>Last Date to Register (Optional)</label>
                 <input
                   type="date"
-                  required
                   value={formData.lastDate}
                   onChange={(e) => setFormData({ ...formData, lastDate: e.target.value })}
                 />
@@ -379,6 +394,13 @@ export default function PostJob() {
         .form-group textarea:focus {
           border-color: #4f6ef7;
           box-shadow: 0 0 0 3px rgba(79, 110, 247, 0.1);
+        }
+
+        .field-hint {
+          display: block;
+          font-size: 12px;
+          color: #9ca3af;
+          margin-top: 4px;
         }
 
         .batch-checkboxes {

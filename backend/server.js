@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const Job = require('./models/Job');
 const Resource = require('./models/Resource');
+const PushToken = require('./models/PushToken');
 require('dotenv').config();
 
 const app = express();
@@ -46,7 +47,6 @@ const rateLimitConfig = {
   cleanupIntervalMs: 30 * 60 * 1000
 };
 
-// In-memory rate limiter
 const requestLog = {};
 
 function getClientIp(req) {
@@ -81,7 +81,6 @@ function simpleRateLimit(req, res, next) {
   next();
 }
 
-// Cleanup old entries every 30 minutes
 setInterval(() => {
   const now = Date.now();
   for (const ip in requestLog) {
@@ -91,7 +90,6 @@ setInterval(() => {
   }
 }, rateLimitConfig.cleanupIntervalMs);
 
-// API key validation
 function validateApiKey(req, res, next) {
   if (req.method === 'GET') {
     return next();
@@ -112,7 +110,6 @@ function validateApiKey(req, res, next) {
   res.status(401).json({ success: false, error: 'Unauthorized' });
 }
 
-// Apply security middleware
 app.use('/api', validateApiKey);
 app.use('/api', (req, res, next) => {
   if (req.method === 'POST' || req.method === 'DELETE') {
@@ -154,7 +151,52 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }
 });
 
-// Health check
+// ==================== PUSH NOTIFICATION HELPER ====================
+
+async function sendPushNotification(title, body, data = {}) {
+  try {
+    const tokens = await PushToken.find({ isActive: true });
+    if (tokens.length === 0) {
+      console.log('No push tokens registered');
+      return;
+    }
+
+    const messages = tokens.map(t => ({
+      to: t.token,
+      sound: 'default',
+      title,
+      body,
+      data,
+      priority: 'high',
+    }));
+
+    // Expo Push API (supports up to 100 messages per request)
+    const chunks = [];
+    for (let i = 0; i < messages.length; i += 100) {
+      chunks.push(messages.slice(i, i + 100));
+    }
+
+    for (const chunk of chunks) {
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(chunk),
+      });
+
+      const result = await response.json();
+      console.log('Push sent:', result.data?.length || 0, 'messages');
+    }
+  } catch (error) {
+    console.error('Push notification error:', error.message);
+  }
+}
+
+// ==================== HEALTH CHECK ====================
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -163,7 +205,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Get all jobs
+// ==================== JOBS ====================
+
+// Get all jobs (supports type=referral filter)
 app.get('/api/jobs', async (req, res) => {
   try {
     const { city, type, category, skill, batch, search } = req.query;
@@ -205,16 +249,32 @@ app.get('/api/jobs/cities', async (req, res) => {
   }
 });
 
-// Post job
+// Post a job (supports referral type)
 app.post('/api/jobs', async (req, res) => {
   try {
-    const { type, category, jobTitle, company, city, skills, applyLink, expiryDate, batchEligible, eventDate, lastDate, venue, timing } = req.body;
+    const {
+      type,
+      category,
+      jobTitle,
+      company,
+      city,
+      skills,
+      applyLink,
+      expiryDate,
+      batchEligible,
+      eventDate,
+      lastDate,
+      venue,
+      timing,
+      referrerName,
+      referrerCompany,
+    } = req.body;
 
     if (!type || !category || !jobTitle || !company || !city) {
       return res.status(400).json({ success: false, error: 'Please provide all required fields' });
     }
 
-    if (!['job', 'walkin'].includes(type)) {
+    if (!['job', 'walkin', 'referral'].includes(type)) {
       return res.status(400).json({ success: false, error: 'Invalid job type' });
     }
 
@@ -261,15 +321,41 @@ app.post('/api/jobs', async (req, res) => {
       jobData.timing = timing || '';
     }
 
+    if (type === 'referral') {
+      jobData.referrerName = referrerName || '';
+      jobData.referrerCompany = referrerCompany || company;
+    }
+
     const job = new Job(jobData);
     await job.save();
+
+    // Send push notification
+    let notifTitle = 'New Job Posted';
+    let notifBody = `${jobTitle} at ${company} in ${city}`;
+
+    if (type === 'walkin') {
+      notifTitle = 'New Walk-in Drive';
+      notifBody = `${jobTitle} at ${company} - ${city}`;
+    } else if (type === 'referral') {
+      notifTitle = 'New Referral Available';
+      notifBody = `${jobTitle} at ${company} - Apply via referral`;
+    }
+
+    // Fire and forget
+    sendPushNotification(notifTitle, notifBody, {
+      jobId: job._id.toString(),
+      type: type,
+      screen: 'Home',
+    });
+
     res.status(201).json({ success: true, message: 'Job posted successfully!', data: job });
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
 });
 
-// Get resources
+// ==================== RESOURCES ====================
+
 app.get('/api/resources', async (req, res) => {
   try {
     const { category } = req.query;
@@ -284,7 +370,6 @@ app.get('/api/resources', async (req, res) => {
   }
 });
 
-// Upload resource
 app.post('/api/resources', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -315,6 +400,14 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
     });
 
     await resource.save();
+
+    // Send push notification for new resource
+    sendPushNotification(
+      'New Resource Added',
+      `${title} - ${category === 'resume' ? 'Resume Template' : 'Interview Prep'}`,
+      { resourceId: resource._id.toString(), screen: 'Resources' }
+    );
+
     res.status(201).json({ success: true, message: 'Resource uploaded!', data: resource });
   } catch (error) {
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
@@ -322,7 +415,6 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
   }
 });
 
-// Download resource
 app.get('/api/resources/:id/download', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
@@ -342,7 +434,69 @@ app.get('/api/resources/:id/download', async (req, res) => {
   }
 });
 
-// Cron job
+// ==================== PUSH NOTIFICATIONS ====================
+
+// Register push token
+app.post('/api/push/register', async (req, res) => {
+  try {
+    const { token, platform, deviceId } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token is required' });
+    }
+
+    // Upsert token
+    await PushToken.findOneAndUpdate(
+      { token },
+      {
+        token,
+        platform: platform || 'unknown',
+        deviceId: deviceId || '',
+        isActive: true,
+        lastUsed: new Date(),
+        registeredAt: new Date(),
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: 'Token registered' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Unregister push token
+app.post('/api/push/unregister', async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Token required' });
+    }
+    await PushToken.updateOne({ token }, { isActive: false });
+    res.json({ success: true, message: 'Token unregistered' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Test push (admin only)
+app.post('/api/push/test', async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    await sendPushNotification(
+      title || 'Test Notification',
+      body || 'This is a test from Fresher-Bro',
+      { screen: 'Home' }
+    );
+    res.json({ success: true, message: 'Test push sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== CRON JOBS ====================
+
+// Deactivate expired jobs every 30 min
 cron.schedule('*/30 * * * *', async () => {
   try {
     const result = await Job.updateMany(
@@ -356,6 +510,25 @@ cron.schedule('*/30 * * * *', async () => {
     console.error('Cron error:', error);
   }
 });
+
+// Clean up old push tokens every day
+cron.schedule('0 3 * * *', async () => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const result = await PushToken.deleteMany({
+      isActive: false,
+      lastUsed: { $lt: thirtyDaysAgo }
+    });
+    if (result.deletedCount > 0) {
+      console.log('Cleaned up ' + result.deletedCount + ' old push tokens');
+    }
+  } catch (error) {
+    console.error('Push cleanup error:', error);
+  }
+});
+
+// ==================== START SERVER ====================
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {

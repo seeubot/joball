@@ -151,7 +151,33 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 }
 });
 
-// ==================== PUSH NOTIFICATION HELPER ====================
+// ==================== HELPERS ====================
+
+const TFI_DIALOGUES = [
+  'కలలు కనే వాళ్ళకే విజయం వస్తుంది! ఈ అవకాశం మిస్ అవ్వకండి.',
+  'ప్రయత్నం ఆపకు, విజయం తప్పకుండా వస్తుంది!',
+  'నీ కెరీర్ నీ చేతుల్లో ఉంది. ఈరోజే అప్లై చేయండి!',
+  'ఒక్క అడుగు ముందుకు వేస్తే, కెరీర్ మారిపోతుంది.',
+  'ధైర్యంగా ముందుకు సాగండి, విజయం నీదే!',
+  'కష్టపడే వాళ్ళకి ఎప్పుడూ గెలుపే!',
+  'ఈ అవకాశాన్ని సద్వినియోగం చేసుకోండి.',
+  'నీ కల నిజం అయ్యే రోజు దగ్గరపడింది. అప్లై చేయండి!',
+  'అవకాశాలు వచ్చినప్పుడు వదిలేయకు.',
+  'మంచి ఉద్యోగం కోసం ఈ రోజే అడుగు వేయండి!',
+];
+
+function getRandomDialogue() {
+  return TFI_DIALOGUES[Math.floor(Math.random() * TFI_DIALOGUES.length)];
+}
+
+function formatDate(date) {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
 
 async function sendPushNotification(title, body, data = {}) {
   try {
@@ -168,9 +194,9 @@ async function sendPushNotification(title, body, data = {}) {
       body,
       data,
       priority: 'high',
+      channelId: 'default',
     }));
 
-    // Expo Push API (supports up to 100 messages per request)
     const chunks = [];
     for (let i = 0; i < messages.length; i += 100) {
       chunks.push(messages.slice(i, i + 100));
@@ -207,7 +233,6 @@ app.get('/health', (req, res) => {
 
 // ==================== JOBS ====================
 
-// Get all jobs (supports type=referral filter)
 app.get('/api/jobs', async (req, res) => {
   try {
     const { city, type, category, skill, batch, search } = req.query;
@@ -236,7 +261,6 @@ app.get('/api/jobs', async (req, res) => {
   }
 });
 
-// Get cities
 app.get('/api/jobs/cities', async (req, res) => {
   try {
     const cities = await Job.distinct('city', { 
@@ -249,7 +273,6 @@ app.get('/api/jobs/cities', async (req, res) => {
   }
 });
 
-// Post a job (supports referral type)
 app.post('/api/jobs', async (req, res) => {
   try {
     const {
@@ -329,22 +352,31 @@ app.post('/api/jobs', async (req, res) => {
     const job = new Job(jobData);
     await job.save();
 
-    // Send push notification
-    let notifTitle = 'New Job Posted';
-    let notifBody = `${jobTitle} at ${company} in ${city}`;
+    // ============ SEND PUSH NOTIFICATION ============
+    const tfiDialogue = getRandomDialogue();
+    const expiryStr = formatDate(job.expiryDate);
+
+    let notifTitle = '';
+    let notifBody = '';
 
     if (type === 'walkin') {
-      notifTitle = 'New Walk-in Drive';
-      notifBody = `${jobTitle} at ${company} - ${city}`;
+      notifTitle = 'Walk-in: ' + jobTitle;
+      notifBody = company + ' • ' + city + '\n📅 Event: ' + formatDate(job.eventDate) + '\n\n' + tfiDialogue;
     } else if (type === 'referral') {
-      notifTitle = 'New Referral Available';
-      notifBody = `${jobTitle} at ${company} - Apply via referral`;
+      notifTitle = 'Referral: ' + jobTitle;
+      notifBody = company + ' • ' + city + '\n⏳ Apply by: ' + expiryStr + '\n\n' + tfiDialogue;
+    } else {
+      notifTitle = 'New Job: ' + jobTitle;
+      notifBody = company + ' • ' + city + '\n⏳ Apply by: ' + expiryStr + '\n\n' + tfiDialogue;
     }
 
-    // Fire and forget
     sendPushNotification(notifTitle, notifBody, {
       jobId: job._id.toString(),
       type: type,
+      title: jobTitle,
+      company: company,
+      city: city,
+      expiryDate: job.expiryDate ? new Date(job.expiryDate).toISOString() : '',
       screen: 'Home',
     });
 
@@ -401,10 +433,11 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
 
     await resource.save();
 
-    // Send push notification for new resource
+    // Push notification for new resource
+    const tfiDialogue = getRandomDialogue();
     sendPushNotification(
-      'New Resource Added',
-      `${title} - ${category === 'resume' ? 'Resume Template' : 'Interview Prep'}`,
+      'New Resource: ' + title,
+      (category === 'resume' ? '📄 Resume Template' : '🎯 Interview Prep') + '\n\n' + tfiDialogue,
       { resourceId: resource._id.toString(), screen: 'Resources' }
     );
 
@@ -436,7 +469,6 @@ app.get('/api/resources/:id/download', async (req, res) => {
 
 // ==================== PUSH NOTIFICATIONS ====================
 
-// Register push token
 app.post('/api/push/register', async (req, res) => {
   try {
     const { token, platform, deviceId } = req.body;
@@ -445,7 +477,6 @@ app.post('/api/push/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Token is required' });
     }
 
-    // Upsert token
     await PushToken.findOneAndUpdate(
       { token },
       {
@@ -465,7 +496,6 @@ app.post('/api/push/register', async (req, res) => {
   }
 });
 
-// Unregister push token
 app.post('/api/push/unregister', async (req, res) => {
   try {
     const { token } = req.body;
@@ -479,13 +509,14 @@ app.post('/api/push/unregister', async (req, res) => {
   }
 });
 
-// Test push (admin only)
 app.post('/api/push/test', async (req, res) => {
   try {
     const { title, body } = req.body;
+    const tfiDialogue = getRandomDialogue();
+
     await sendPushNotification(
       title || 'Test Notification',
-      body || 'This is a test from Fresher-Bro',
+      (body || 'This is a test from Fresher-Bro') + '\n\n' + tfiDialogue,
       { screen: 'Home' }
     );
     res.json({ success: true, message: 'Test push sent' });
@@ -496,7 +527,6 @@ app.post('/api/push/test', async (req, res) => {
 
 // ==================== CRON JOBS ====================
 
-// Deactivate expired jobs every 30 min
 cron.schedule('*/30 * * * *', async () => {
   try {
     const result = await Job.updateMany(
@@ -511,7 +541,6 @@ cron.schedule('*/30 * * * *', async () => {
   }
 });
 
-// Clean up old push tokens every day
 cron.schedule('0 3 * * *', async () => {
   try {
     const thirtyDaysAgo = new Date();

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 
+const API_KEY = 'fresher-Bro@1660440';
+
 export default function PostJob() {
   const router = useRouter();
   const [jobType, setJobType] = useState('job');
@@ -18,7 +20,9 @@ export default function PostJob() {
     eventDate: '',
     lastDate: '',
     venue: '',
-    timing: ''
+    timing: '',
+    referrerName: '',
+    referrerCompany: ''
   });
 
   const handleSubmit = async (e) => {
@@ -26,7 +30,6 @@ export default function PostJob() {
     setSubmitting(true);
 
     try {
-      // Split skills by newlines, commas, or spaces
       const skillsArray = formData.skills
         .split(/[\n,]+/)
         .map(s => s.trim())
@@ -39,12 +42,17 @@ export default function PostJob() {
         applyLink: formData.applyLink || undefined,
         expiryDate: formData.expiryDate || undefined,
         lastDate: formData.lastDate || undefined,
-        timing: formData.timing || undefined
+        timing: formData.timing || undefined,
+        referrerName: formData.referrerName || undefined,
+        referrerCompany: formData.referrerCompany || undefined
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/jobs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        },
         body: JSON.stringify(finalData)
       });
 
@@ -84,7 +92,7 @@ export default function PostJob() {
         {/* Job Type */}
         <div className="form-section">
           <h2>Job Type</h2>
-          <div className="job-type-selector">
+          <div className="job-type-selector three-col">
             <button
               type="button"
               className={`type-option ${jobType === 'job' ? 'selected' : ''}`}
@@ -95,6 +103,17 @@ export default function PostJob() {
             >
               <span className="type-title">Job Opening</span>
               <span className="type-desc">Regular full-time roles</span>
+            </button>
+            <button
+              type="button"
+              className={`type-option referral-option ${jobType === 'referral' ? 'selected' : ''}`}
+              onClick={() => {
+                setJobType('referral');
+                setFormData({ ...formData, type: 'referral' });
+              }}
+            >
+              <span className="type-title">Referral</span>
+              <span className="type-desc">Employee referral link</span>
             </button>
             <button
               type="button"
@@ -198,20 +217,50 @@ export default function PostJob() {
         </div>
 
         {/* Conditional Fields */}
-        {jobType === 'job' ? (
+        {(jobType === 'job' || jobType === 'referral') ? (
           <div className="form-section">
-            <h2>Application Details</h2>
+            <h2>{jobType === 'referral' ? 'Referral Details' : 'Application Details'}</h2>
             <div className="form-grid">
+              {jobType === 'referral' && (
+                <>
+                  <div className="form-group">
+                    <label>Your Name (Employee)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., Ravi Kumar"
+                      value={formData.referrerName}
+                      onChange={(e) => setFormData({ ...formData, referrerName: e.target.value })}
+                    />
+                    <span className="field-hint">
+                      Optional. Shown to freshers as the referrer.
+                    </span>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Your Company</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., TCS, Infosys"
+                      value={formData.referrerCompany}
+                      onChange={(e) => setFormData({ ...formData, referrerCompany: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="form-group">
-                <label>Apply Link (Optional)</label>
+                <label>{jobType === 'referral' ? 'Referral Link *' : 'Apply Link (Optional)'}</label>
                 <input
                   type="url"
-                  placeholder="https://company.com/careers"
+                  required={jobType === 'referral'}
+                  placeholder="https://company.com/referral/..."
                   value={formData.applyLink}
                   onChange={(e) => setFormData({ ...formData, applyLink: e.target.value })}
                 />
                 <span className="field-hint">
-                  Link లేకపోతే ఖాళీగా వదలండి
+                  {jobType === 'referral'
+                    ? 'Employees paste their company referral URL here.'
+                    : 'Link లేకపోతే ఖాళీగా వదలండి'}
                 </span>
               </div>
 
@@ -283,7 +332,13 @@ export default function PostJob() {
         )}
 
         <button type="submit" className="submit-btn" disabled={submitting}>
-          {submitting ? 'Posting...' : 'Post Job Opening'}
+          {submitting
+            ? 'Posting...'
+            : jobType === 'walkin'
+            ? 'Post Walk-in Drive'
+            : jobType === 'referral'
+            ? 'Post Referral'
+            : 'Post Job Opening'}
         </button>
       </form>
 
@@ -334,6 +389,9 @@ export default function PostJob() {
           grid-template-columns: 1fr 1fr;
           gap: 16px;
         }
+        .job-type-selector.three-col {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
         .type-option {
           padding: 20px;
           border: 2px solid #e5e7eb;
@@ -349,6 +407,10 @@ export default function PostJob() {
         .type-option.selected {
           border-color: #4f6ef7;
           background: #eef2ff;
+        }
+        .type-option.referral-option.selected {
+          border-color: #10b981;
+          background: #ecfdf5;
         }
         .type-title {
           display: block;
@@ -449,6 +511,7 @@ export default function PostJob() {
             padding: 20px;
           }
           .job-type-selector,
+          .job-type-selector.three-col,
           .form-grid {
             grid-template-columns: 1fr;
           }

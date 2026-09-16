@@ -70,8 +70,13 @@ export default function Resources() {
     formDataToSend.append('uploadedBy', formData.uploadedBy || 'Anonymous');
 
     try {
+      const API_KEY = 'fresher-Bro@1660440';
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resources`, {
         method: 'POST',
+        headers: {
+          'x-api-key': API_KEY,
+        },
         body: formDataToSend
       });
 
@@ -81,7 +86,6 @@ export default function Resources() {
         setUploadSuccess(true);
         setFormData({ title: '', description: '', category: 'resume', uploadedBy: '' });
         e.target.value = '';
-        // Refresh the current tab
         const currentCategory = activeTab === 'resumes' ? 'resume' : 'interview';
         fetchResources(currentCategory);
       } else {
@@ -105,7 +109,7 @@ export default function Resources() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setTimeout(() => {
         const currentCategory = activeTab === 'resumes' ? 'resume' : 'interview';
         fetchResources(currentCategory);

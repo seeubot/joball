@@ -1,7 +1,7 @@
 {
-  "name": "joball-backend",
-  "version": "1.0.0",
-  "description": "JobAll Freshers Job Portal Backend",
+  "name": "fresher-bro-backend",
+  "version": "2.0.0",
+  "description": "Fresher-Bro Backend",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

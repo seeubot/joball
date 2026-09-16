@@ -190,12 +190,24 @@ function formatDate(date) {
 }
 
 async function sendPushNotification(title, body, data = {}) {
+  console.log('--- sendPushNotification called ---');
+  console.log('Title:', title);
+  console.log('Body:', body);
+
   try {
     const tokens = await PushToken.find({ isActive: true });
+    console.log('Found active tokens:', tokens.length);
+
     if (tokens.length === 0) {
       console.log('No push tokens registered');
       return;
     }
+
+    console.log('Registered tokens:', tokens.map(t => ({
+      token: t.token.substring(0, 40) + '...',
+      platform: t.platform,
+      lastUsed: t.lastUsed,
+    })));
 
     const messages = tokens.map(t => ({
       to: t.token,
@@ -224,10 +236,27 @@ async function sendPushNotification(title, body, data = {}) {
       });
 
       const result = await response.json();
-      console.log('Push sent:', result.data?.length || 0, 'messages');
+
+      console.log('========== EXPO PUSH RESPONSE ==========');
+      console.log(JSON.stringify(result, null, 2));
+      console.log('========================================');
+
+      if (result.data) {
+        result.data.forEach((ticket, i) => {
+          if (ticket.status === 'error') {
+            console.error(`Ticket ${i + 1} ERROR:`, ticket.message);
+            console.error(`  Details:`, JSON.stringify(ticket.details));
+          } else {
+            console.log(`Ticket ${i + 1} OK - ID: ${ticket.id}`);
+          }
+        });
+      } else if (result.errors) {
+        console.error('Expo errors:', JSON.stringify(result.errors, null, 2));
+      }
     }
   } catch (error) {
     console.error('Push notification error:', error.message);
+    console.error('Stack:', error.stack);
   }
 }
 
@@ -239,6 +268,27 @@ app.get('/health', (req, res) => {
     message: 'Fresher-Bro API is running',
     timestamp: new Date()
   });
+});
+
+// ==================== DEBUG: LIST TOKENS ====================
+
+app.get('/api/push/tokens', async (req, res) => {
+  try {
+    const tokens = await PushToken.find({ isActive: true });
+    res.json({
+      success: true,
+      count: tokens.length,
+      tokens: tokens.map(t => ({
+        token: t.token,
+        platform: t.platform,
+        deviceId: t.deviceId,
+        registeredAt: t.registeredAt,
+        lastUsed: t.lastUsed,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // ==================== JOBS ====================
@@ -447,7 +497,7 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
     const tfiDialogue = getRandomDialogue();
     sendPushNotification(
       'New Resource: ' + title,
-      (category === 'resume' ? '📄 Resume Template' : '🎯 Interview Prep') + '\n\n' + tfiDialogue,
+      (category === 'resume' ? 'Resume Template' : 'Interview Prep') + '\n\n' + tfiDialogue,
       { resourceId: resource._id.toString(), screen: 'Resources' }
     );
 
@@ -499,6 +549,8 @@ app.post('/api/push/register', async (req, res) => {
       },
       { upsert: true, new: true }
     );
+
+    console.log('Token registered:', token.substring(0, 40) + '...');
 
     res.json({ success: true, message: 'Token registered' });
   } catch (error) {

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const jobSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['job', 'walkin'],
+    enum: ['job', 'walkin', 'referral'],
     required: true
   },
   category: {
@@ -56,13 +56,23 @@ const jobSchema = new mongoose.Schema({
   lastDate: Date,
   venue: String,
   timing: String,
+  // Referral specific fields
+  referrerName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  referrerCompany: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   postedAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Compound indexes
 jobSchema.index({ city: 1, type: 1, category: 1, isActive: 1 });
 jobSchema.index({ skills: 1, isActive: 1 });
 

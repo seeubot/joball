@@ -9,6 +9,7 @@ const fs = require('fs');
 const Job = require('./models/Job');
 const Resource = require('./models/Resource');
 const PushToken = require('./models/PushToken');
+const Notification = require('./models/Notification');
 require('dotenv').config();
 
 const app = express();
@@ -195,11 +196,34 @@ async function sendPushNotification(title, body, data = {}) {
   console.log('Body:', body);
 
   try {
+    // Save to database for in-app notification center
+    try {
+      const notification = new Notification({
+        title,
+        body,
+        type: data.type || 'system',
+        data: {
+          jobId: data.jobId || '',
+          resourceId: data.resourceId || '',
+          company: data.company || '',
+          city: data.city || '',
+          screen: data.screen || 'Home',
+          expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+        },
+        isActive: true,
+        createdAt: new Date(),
+      });
+      await notification.save();
+      console.log('Notification saved to DB:', notification._id);
+    } catch (dbErr) {
+      console.error('Failed to save notification to DB:', dbErr.message);
+    }
+
     const tokens = await PushToken.find({ isActive: true });
     console.log('Found active tokens:', tokens.length);
 
     if (tokens.length === 0) {
-      console.log('No push tokens registered');
+      console.log('No push tokens registered (notification still saved to DB)');
       return;
     }
 
@@ -498,7 +522,11 @@ app.post('/api/resources', upload.single('file'), async (req, res) => {
     sendPushNotification(
       'New Resource: ' + title,
       (category === 'resume' ? 'Resume Template' : 'Interview Prep') + '\n\n' + tfiDialogue,
-      { resourceId: resource._id.toString(), screen: 'Resources' }
+      { 
+        resourceId: resource._id.toString(), 
+        screen: 'Resources',
+        type: 'resource',
+      }
     );
 
     res.status(201).json({ success: true, message: 'Resource uploaded!', data: resource });
@@ -579,9 +607,69 @@ app.post('/api/push/test', async (req, res) => {
     await sendPushNotification(
       title || 'Test Notification',
       (body || 'This is a test from Fresher-Bro') + '\n\n' + tfiDialogue,
-      { screen: 'Home' }
+      { screen: 'Home', type: 'system' }
     );
     res.json({ success: true, message: 'Test push sent' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ==================== NOTIFICATIONS ====================
+
+// Get all notifications
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const notifications = await Notification.find({ isActive: true })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      count: notifications.length,
+      data: notifications,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get single notification
+app.get('/api/notifications/:id', async (req, res) => {
+  try {
+    const notification = await Notification.findById(req.params.id);
+    if (!notification || !notification.isActive) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+    res.json({ success: true, data: notification });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a notification
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    const notification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
+    res.json({ success: true, message: 'Notification dismissed' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get count
+app.get('/api/notifications/count', async (req, res) => {
+  try {
+    const count = await Notification.countDocuments({ isActive: true });
+    res.json({ success: true, count });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -616,6 +704,21 @@ cron.schedule('0 3 * * *', async () => {
     }
   } catch (error) {
     console.error('Push cleanup error:', error);
+  }
+});
+
+cron.schedule('0 4 * * *', async () => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const result = await Notification.deleteMany({
+      createdAt: { $lt: thirtyDaysAgo }
+    });
+    if (result.deletedCount > 0) {
+      console.log('Cleaned up ' + result.deletedCount + ' old notifications');
+    }
+  } catch (error) {
+    console.error('Notification cleanup error:', error);
   }
 });
 

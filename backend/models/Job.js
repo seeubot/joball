@@ -51,12 +51,10 @@ const jobSchema = new mongoose.Schema({
     default: true,
     index: true
   },
-  // Walk-in specific fields
   eventDate: Date,
   lastDate: Date,
   venue: String,
   timing: String,
-  // Referral specific fields
   referrerName: {
     type: String,
     trim: true,

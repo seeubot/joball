@@ -154,16 +154,26 @@ const upload = multer({
 // ==================== HELPERS ====================
 
 const TFI_DIALOGUES = [
-  'కలలు కనే వాళ్ళకే విజయం వస్తుంది! ఈ అవకాశం మిస్ అవ్వకండి.',
-  'ప్రయత్నం ఆపకు, విజయం తప్పకుండా వస్తుంది!',
-  'నీ కెరీర్ నీ చేతుల్లో ఉంది. ఈరోజే అప్లై చేయండి!',
-  'ఒక్క అడుగు ముందుకు వేస్తే, కెరీర్ మారిపోతుంది.',
-  'ధైర్యంగా ముందుకు సాగండి, విజయం నీదే!',
-  'కష్టపడే వాళ్ళకి ఎప్పుడూ గెలుపే!',
-  'ఈ అవకాశాన్ని సద్వినియోగం చేసుకోండి.',
-  'నీ కల నిజం అయ్యే రోజు దగ్గరపడింది. అప్లై చేయండి!',
-  'అవకాశాలు వచ్చినప్పుడు వదిలేయకు.',
-  'మంచి ఉద్యోగం కోసం ఈ రోజే అడుగు వేయండి!',
+  'Job kosam wait cheyyaku… opportunity ni chase cheyyi!',
+  'Oka chance kosam wait chestunnava? Ikkade start cheyyi!',
+  'Nee first job… nee career ki first big step!',
+  'Experience ledu ani aagipoku… first chance evaraina ivvali!',
+  'Oka referral… oka interview… oka life-changing chance!',
+  'Nee skills ki match ayye opportunity ikkada undochu!',
+  'Resume ready aa? Mari opportunity kosam enduku wait?',
+  'Oka application tho nee career story start avvachu!',
+  'Referral dorikithe share cheyyi… oka fresher future marchochu!',
+  'Nee friend ki job kavala? Ee opportunity ni share cheyyi!',
+  'Dream job kosam first step… APPLY!',
+  'Opportunity chusava? Save cheyyaku… APPLY cheyyi!',
+  'Scroll chestu time waste cheyyaku… nee next opportunity ni find cheyyi!',
+  'Nee career nee chethullo undi… first step ivvale veyyi!',
+  'Freshers ki chance ledani anukuntunnava? Once try cheyyi!',
+  'Job hunt lo single ga kaadu… opportunities ni kalisi discover cheddam!',
+  'Today apply chesina oka job… repu nee career ni marchochu!',
+  'Nee next interview ekkada untundo… ee roju decide avvachu!',
+  'Oka opportunity ni share cheyyadam… oka fresher life ni marchochu!',
+  'Freshers, mee career ki START button ikkade!'
 ];
 
 function getRandomDialogue() {

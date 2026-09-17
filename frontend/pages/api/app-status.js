@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     success: true,
     data: {
       maintenanceMode: false,
-      forceUpdate: true,
+      forceUpdate: false,
       latestVersion: '1.0.0',
       minSupportedVersion: '1.0.0',
       updateMessage: '',

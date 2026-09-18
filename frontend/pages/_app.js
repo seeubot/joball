@@ -1,10 +1,12 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fetchNotificationCount } from '../lib/api';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
 
   const navigation = [
     { name: 'Browse Jobs', href: '/' },
@@ -18,6 +20,25 @@ function MyApp({ Component, pageProps }) {
     if (href === '/') return router.pathname === '/';
     return router.pathname.startsWith(href);
   };
+
+  const loadNotifCount = async () => {
+    try {
+      const result = await fetchNotificationCount();
+      if (result.success) {
+        setNotifCount(result.count);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    loadNotifCount();
+    const interval = setInterval(loadNotifCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    loadNotifCount();
+  }, [router.pathname]);
 
   return (
     <div>
@@ -37,6 +58,17 @@ function MyApp({ Component, pageProps }) {
                 {item.name}
               </Link>
             ))}
+            <Link
+              href="/notifications"
+              className={`notif-bell-link ${isActive('/notifications') ? 'active' : ''}`}
+            >
+              <span className="notif-bell">🔔</span>
+              {notifCount > 0 && (
+                <span className="notif-bell-badge">
+                  {notifCount > 99 ? '99+' : notifCount}
+                </span>
+              )}
+            </Link>
             <Link href="/post-job" className="nav-cta">
               Post Job
             </Link>
@@ -64,6 +96,13 @@ function MyApp({ Component, pageProps }) {
                 {item.name}
               </Link>
             ))}
+            <Link
+              href="/notifications"
+              className={isActive('/notifications') ? 'active' : ''}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Notifications {notifCount > 0 && `(${notifCount})`}
+            </Link>
           </div>
         )}
       </nav>
@@ -191,6 +230,52 @@ function MyApp({ Component, pageProps }) {
 
         .nav-cta:hover {
           background: var(--primary-dark) !important;
+        }
+
+        .notif-bell-link {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          padding: 0 !important;
+          border-radius: 8px !important;
+          font-size: 18px;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+
+        .notif-bell-link:hover {
+          background: var(--gray-100) !important;
+        }
+
+        .notif-bell-link.active {
+          background: var(--primary-light) !important;
+        }
+
+        .notif-bell {
+          font-size: 18px;
+          line-height: 1;
+        }
+
+        .notif-bell-badge {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          background: #ef4444;
+          color: white;
+          font-size: 10px;
+          font-weight: 800;
+          min-width: 18px;
+          height: 18px;
+          padding: 0 4px;
+          border-radius: 9px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid white;
+          line-height: 1;
         }
 
         .mobile-menu-btn {
